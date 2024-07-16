@@ -1,6 +1,7 @@
 {
     "Lua.diagnostics.globals": [
         "SlashCmdList",
-        "DevTool"
+        "DevTool",
+        "BOOKTYPE_SPELL"
     ]
 }

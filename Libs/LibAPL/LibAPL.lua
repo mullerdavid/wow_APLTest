@@ -20,8 +20,14 @@ if not LibAPL then
     return
 end
 
+local LibRangeCheck = LibStub("LibRangeCheck-3.0")
+
 local L = {}
+local SPELL_POWER_MANA = 0
+local SPELL_POWER_RAGE = 1
+local SPELL_POWER_FOCUS = 2
 local SPELL_POWER_ENERGY = 3
+
 
 function L.DebugVar(arg, name)
 	name = name or "debug"
@@ -302,14 +308,58 @@ function APLInterpreter:const(level, vals)
     return ret
 end
 
+function L.HealthPercent(unit)
+    return UnitHealth(unit) / UnitHealthMax(unit)
+end
+
+function L.PowerPercent(unit, powertype)
+    return UnitPower(unit, powertype) / UnitPowerMax(unit, powertype)
+end
+
+function APLInterpreter:currentHealth(level)
+    local ret = UnitHealth("player")
+    L.DebugLev(level, "currentHealth", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentHealthPercent(level)
+    local ret = L.HealthPercent("player")
+    L.DebugLev(level, "currentHealthPercent", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentMana(level)
+    local ret = UnitPower("player", SPELL_POWER_MANA)
+    L.DebugLev(level, "currentMana", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentManaPercent(level)
+    local ret = L.PowerPercent("player", SPELL_POWER_MANA)
+    L.DebugLev(level, "currentManaPercent", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentRage(level)
+    local ret = UnitPower("player", SPELL_POWER_RAGE)
+    L.DebugLev(level, "currentRage", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentFocus(level)
+    local ret = UnitPower("player", SPELL_POWER_FOCUS)
+    L.DebugLev(level, "currentFocus", "=", ret)
+    return ret
+end
+
 function APLInterpreter:currentEnergy(level)
-    local ret =  UnitPower("player", SPELL_POWER_ENERGY)
+    local ret = UnitPower("player", SPELL_POWER_ENERGY)
     L.DebugLev(level, "currentEnergy", "=", ret)
     return ret
 end
 
 function APLInterpreter:currentComboPoints(level)
-    local ret =  GetComboPoints("player", "target")
+    local ret = GetComboPoints("player", "target")
     L.DebugLev(level, "currentComboPoints", "=", ret)
     return ret
 end
@@ -419,41 +469,86 @@ function APLInterpreter:spellTimeToready(level, vals)
     return ret
 end
 
-function L.TargetHealthPercent()
-    local unit = "target"
-    local health = UnitHealth(unit)
-    local max_health = UnitHealthMax(unit)
-    return health / max_health
+function APLInterpreter:currentTime(level)
+    -- TODO: implement
+    local ret = 0
+    L.DebugLev(level, "currentTime", "=", ret)
+end
+
+function APLInterpreter:currentTimePercent(level)
+    -- rough estimate based on health
+    local ret = 1.0 - L.HealthPercent("target")
+    L.DebugLev(level, "currentTimePercent", "=", ret)
+    return ret
 end
 
 function APLInterpreter:remainingTime(level)
-    local ret = 0
     -- rough estimate for 3 minute fight
-    ret = L.TargetHealthPercent() * 180
+    local ret = L.HealthPercent("target") * 3 * 60
     L.DebugLev(level, "remainingTime", "=", ret)
     return ret
 end
 
-function APLInterpreter:remainingDurationPercent(level)
-    local ret = 0
+function APLInterpreter:remainingTimePercent(level)
     -- rough estimate based on health
-    ret = L.TargetHealthPercent()
-    L.DebugLev(level, "remainingDurationPercent", "=", ret)
+    local ret = L.HealthPercent("target")
+    L.DebugLev(level, "remainingTimePercent", "=", ret)
     return ret
 end
 
 function L.IsExecutePhase(key)
     if key == "E90" then
-        return 90 < L.TargetHealthPercent()
+        return 90 < L.HealthPercent("target")
     else
         local pct = tonumber(key:sub(2))
-        return L.TargetHealthPercent() <= pct
+        return L.HealthPercent("target") <= pct
     end
 end
 
-function APLInterpreter:IsExecutePhase(level)
-    local ret = false
-    ret = L.IsExecutePhase("E90")
+function APLInterpreter:isExecutePhase(level, vals)
+    local ret = L.IsExecutePhase(vals.threshold)
     L.DebugLev(level, "IsExecutePhase", "=", ret)
+    return ret
+end
+
+function L.GetNumTargetsNearby()
+    local num = 0
+    local nameplates = C_NamePlate.GetNamePlates()
+    for i=1,#nameplates 
+    do 
+        local unit = nameplates[i].namePlateUnitToken
+        if UnitCanAttack("player", unit) and L.CheckRange(unit, 8, "<=")
+        then
+            num = num + 1
+        end
+    end
+    return num
+end
+
+function L.CheckRange(unit, range, operator)
+    local min, max = LibRangeCheck:GetRange(unit, true);
+    if (type(range) ~= "number") then
+        range = tonumber(range);
+    end
+    if (not range) then
+        return
+    end
+    if (operator == "<=") then
+        return (max or 999) <= range;
+    else
+        return (min or 0) >= range;
+    end
+end
+
+function APLInterpreter:numberTargets(level)
+    local ret = L.GetNumTargetsNearby()
+    L.DebugLev(level, "numberTargets", "=", ret)
+    return ret
+end
+
+function APLInterpreter:frontOfTarget(level)
+    local ret = false
+    -- TODO: possible?
+    L.DebugLev(level, "frontOfTarget", "=", ret)
     return ret
 end
