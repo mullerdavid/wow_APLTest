@@ -42,7 +42,7 @@ local Debug = {}
 local Logger = {}
 
 function Logger.Warning(...)
-	print("[APL][Warn]", ...)
+	print("\124cFFFFFF00[APL]", ..., "\124r")
 end
 
 function Debug.DumpVar(arg, name)
