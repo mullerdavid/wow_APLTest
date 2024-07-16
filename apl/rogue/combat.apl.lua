@@ -97,7 +97,7 @@ T.APL.Rogue_Combat = {
   }, {
     action = {
       condition = {
-        ["or"] = {
+        ["and"] = {
           vals = { {
             cmp = {
               op = "OpLe",
@@ -114,18 +114,6 @@ T.APL.Rogue_Combat = {
             auraIsActive = {
               auraId = {
                 spellId = 84747
-              }
-            }
-          }, {
-            cmp = {
-              op = "OpEq",
-              lhs = {
-                currentComboPoints = { }
-              },
-              rhs = {
-                const = {
-                  val = "5"
-                }
               }
             }
           } }
@@ -456,13 +444,13 @@ T.APL.Rogue_Combat = {
         ["and"] = {
           vals = { {
             cmp = {
-              op = "OpLt",
+              op = "OpEq",
               lhs = {
                 currentComboPoints = { }
               },
               rhs = {
                 const = {
-                  val = "5"
+                  val = "4"
                 }
               }
             }

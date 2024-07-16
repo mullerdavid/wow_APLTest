@@ -2,15 +2,17 @@ local LIB_VERSION_MAJOR, LIB_VERSION_MINOR = "LibAPL-1.0", 1
 
 --[[
 Prepull
+Sequence related stuff
+wowsim extension - variables from outside
+
+move helper/getter functions to own class for reusability
+caching compute heavy stuff
 
 https://github.com/wowsims/wotlk/blob/7597c28d4145c235d001f0242e3c99c0f8edbdb8/proto/apl.proto
 
 JSON.stringify(JSON.parse(localStorage.getItem("__cata_assassination_rogue__currentSettings__")).player.rotation)
 
 Datastore?
-wowsim extension - variables from outside
-also do prepull
-caching stuff
 ]]--
 
 ---@class LibAPL-1.0
@@ -123,8 +125,8 @@ function LibAPL:Interpret()
                     return "strictSequence", act.strictSequence
                 elseif act.castSpell then
                     local vals = act.castSpell
-                    -- final check if spell is ready, TODO: GCD?
-                    if interpreter:spellTimeToready(1, vals) <= 1 then
+                    -- final check if spell is ready
+                    if interpreter:spellIsReady(1, vals) then
                         return "castSpell", vals.spellId.spellId
                     end
                 else
@@ -141,6 +143,7 @@ function APLInterpreter:ResetCache()
     self.time = GetTime()
     self.cacheAura = {}
     self.cacheSpells = {}
+    self.gcd = self:GetSpellCooldownNoCache(61304) -- 61304 is Global Cooldown
 end
 
 function APLInterpreter:EvalCondition(level, condition)
@@ -364,6 +367,12 @@ function APLInterpreter:currentComboPoints(level)
     return ret
 end
 
+function APLInterpreter:unitIsMoving(level)
+    local threshold = 0.01
+    local ret = threshold < GetUnitSpeed("player")
+    L.DebugLev(level, "unitIsMoving", "=", ret)
+end
+
 ---@diagnostic disable-next-line: deprecated
 L.UnitAura = _G["UnitAura"]
 if L.UnitAura == nil then
@@ -452,20 +461,41 @@ function APLInterpreter:dotRemainingTime(level, vals)
     return ret
 end
 
-function APLInterpreter:spellTimeToready(level, vals)
-    local spellId = vals.spellId.spellId
+function APLInterpreter:GetSpellCooldownNoCache(spellId)
+    local ret = 0
+    local start, duration = GetSpellCooldown(spellId)
+    if 0 < start and 0 < duration then
+        ret = start + duration - self.time
+    end
+    return ret
+end
+
+function APLInterpreter:GetSpellCooldown(spellId)
     local ret = 0
     if self.cacheSpells[spellId] then
-        ret = self.cacheSpells[spellId]
+        return self.cacheSpells[spellId]
     else
-        local start, duration = GetSpellCooldown(spellId)
-        if start and duration
-        then
-            ret = start + duration - self.time -- TODO: debug values
-        end
+        ret = self:GetSpellCooldownNoCache(spellId)
         self.cacheSpells[spellId] = ret
     end
+    return ret
+end
+
+function APLInterpreter:IsSpellReady(spellId)
+    return self:GetSpellCooldown(spellId) <= self.gcd
+end
+
+function APLInterpreter:spellTimeToready(level, vals)
+    local spellId = vals.spellId.spellId
+    local ret = self:GetSpellCooldown(spellId)
     L.DebugLev(level, "spellTimeToready", spellId, "=", ret)
+    return ret
+end
+
+function APLInterpreter:spellIsReady(level, vals)
+    local spellId = vals.spellId.spellId
+    local ret = self:IsSpellReady(spellId)
+    L.DebugLev(level, "spellIsReady", spellId, "=", ret)
     return ret
 end
 
@@ -551,4 +581,26 @@ function APLInterpreter:frontOfTarget(level)
     -- TODO: possible?
     L.DebugLev(level, "frontOfTarget", "=", ret)
     return ret
+end
+
+function APLInterpreter:bossSpellIsCasting(level)
+    -- TODO: implement
+    local ret = false
+    L.DebugLev(level, "bossSpellIsCasting", "=", ret)
+end
+
+function APLInterpreter:bossSpellTimeToReady(level)
+    -- TODO: possible? dbm?
+    local ret = 0
+    L.DebugLev(level, "bossSpellTimeToReady", "=", ret)
+end
+
+function APLInterpreter:gcdTimeToReady(level)
+    local ret = self.gcd
+    L.DebugLev(level, "gcdTimeToReady", "=", ret)
+end
+
+function APLInterpreter:gcdIsReady(level)
+    local ret = self.gcd <= 0
+    L.DebugLev(level, "gcdIsReady", "=", ret)
 end
