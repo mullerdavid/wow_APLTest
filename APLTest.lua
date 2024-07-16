@@ -73,4 +73,43 @@ local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", OnEvent)
 
+if true then
+    local f = CreateFrame("Frame",nil,UIParent)
+    f:SetWidth(1)
+    f:SetHeight(1)
+    f:SetPoint("TOPLEFT",32,-32)
+    f.text = f:CreateFontString(nil,"ARTWORK") 
+    f.text:SetFont("Fonts\\ARIALN.ttf", 12, "OUTLINE")
+    f.text:SetPoint("TOPLEFT",0,0)
+    f.text:SetJustifyH("LEFT")
+    f.text:SetJustifyV("TOP")
+    f:Show()
+    f.text:SetText(L.DebugFrameText)
+    local debugText = ""
 
+	local function DumpVar(arg, name)
+		name = name or "debug"
+		DevTool.MainWindow:Show()
+		DevTool:ClearAllData()
+		DevTool:AddData(arg, name)
+		DevTool:UpdateMainTableUI()
+	end
+
+	local function DebugClear()
+		debugText = ""
+	end
+
+	local function Debug(...)
+		for _,v in ipairs({...}) do
+			if type(v) == "number" and (v % 1) ~= 0 then
+				debugText= debugText .. string.format("%.4f", v) .. " "
+			else
+				debugText= debugText .. tostring(v) .. " "
+			end
+		end
+		debugText = debugText .. "\n"
+		f.text:SetText(debugText)
+	end
+
+	LAPL:AttachDebugger(DebugClear, Debug, DumpVar)
+end
