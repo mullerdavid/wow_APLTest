@@ -18,12 +18,12 @@ local function Init()
 	print(ADDON.." Init()")
 
 	local f = CreateFrame("Frame",nil,UIParent)
-	f:SetWidth(64)
-	f:SetHeight(64)
+	f:SetWidth(48)
+	f:SetHeight(48)
 	f:SetPoint("CENTER",0,-96)
 	f.text = f:CreateFontString(nil,"ARTWORK") 
 	f.text:SetFont("Fonts\\ARIALN.ttf", 14, "OUTLINE")
-	f.text:SetPoint("CENTER",0,-40)
+	f.text:SetPoint("CENTER",0,-32)
 	f.text:SetText("")
 	f.texture = f:CreateTexture(nil, "BACKGROUND")
 	f.texture:SetAllPoints()
@@ -61,8 +61,7 @@ local function Init()
 end
 
 local function OnEvent(self, event, arg1)
-	if event == "ADDON_LOADED" and arg1 == ADDON
-	then
+	if event == "ADDON_LOADED" and arg1 == ADDON then
 		self:UnregisterEvent("ADDON_LOADED")
 		SlashCmdList[ADDON] = ProcessCommand
 		Init()

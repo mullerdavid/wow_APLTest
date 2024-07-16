@@ -230,6 +230,23 @@ function Helper:CheckRange(unit, range, operator)
     end
 end
 
+local function HelperEventsFunction(self, event, arg1)
+	if event == "PLAYER_REGEN_DISABLED" then
+		self.__last_combat_start = GetTime()
+	end
+end
+
+local HelperEventsFrame = CreateFrame("Frame")
+HelperEventsFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+HelperEventsFrame:SetScript("OnEvent", HelperEventsFunction)
+
+function Helper:CombatTime()
+    if UnitAffectingCombat("player") and HelperEventsFrame.__last_combat_start then
+        return self.time - HelperEventsFrame.__last_combat_start
+    end
+    return 0
+end
+
 --endregion
 
 --region APLInterpreter
@@ -513,9 +530,9 @@ function APLInterpreter:spellIsReady(level, vals)
 end
 
 function APLInterpreter:currentTime(level)
-    -- TODO: implement
-    local ret = 0
+    local ret = self.helper:CombatTime()
     Debug.DebugLev(level, "currentTime", "=", ret)
+    return ret
 end
 
 function APLInterpreter:currentTimePercent(level)
@@ -623,6 +640,7 @@ function LibAPL:Interpret()
         local act = val.action
         if not val.hide then
             Debug.DebugClear()
+            Debug.Debug(interpreter.helper:CombatTime())
             local cond = act.condition == nil or interpreter:EvalCondition(-1, act.condition)
             if cond then
                 if act.autocastOtherCooldowns then
