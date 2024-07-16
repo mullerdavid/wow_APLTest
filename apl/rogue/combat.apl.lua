@@ -167,7 +167,6 @@ T.APL.Rogue_Combat = {
       }
     }
   }, {
-    hide = true, -- TODO: remove
     action = {
       condition = {
         ["and"] = {

@@ -1,7 +1,11 @@
 local LIB_VERSION_MAJOR, LIB_VERSION_MINOR = "LibAPL-1.0", 1
 
 --[[
+Prepull
+
 https://github.com/wowsims/wotlk/blob/7597c28d4145c235d001f0242e3c99c0f8edbdb8/proto/apl.proto
+
+JSON.stringify(JSON.parse(localStorage.getItem("__cata_assassination_rogue__currentSettings__")).player.rotation)
 
 Datastore?
 wowsim extension - variables from outside
@@ -103,15 +107,18 @@ function LibAPL:Interpret()
     local interpreter = APLInterpreter:New()
     for _,val in ipairs(self.apl) do
         local act = val.action
-        if act.condition and (not val.hide) then
+        if not val.hide then
             L.DebugClear()
-            local cond = interpreter:EvalCondition(-1, act.condition)
+            local cond = act.condition == nil or interpreter:EvalCondition(-1, act.condition)
             if cond then
-                if act.strictSequence then
+                if act.autocastOtherCooldowns then
+                    -- do nothing
+                elseif act.strictSequence then
                     return "strictSequence", act.strictSequence
                 elseif act.castSpell then
                     local vals = act.castSpell
-                    if interpreter:spellTimeToready(1, vals) <= 1 then -- final check if spell is ready, TODO: GCD?
+                    -- final check if spell is ready, TODO: GCD?
+                    if interpreter:spellTimeToready(1, vals) <= 1 then
                         return "castSpell", vals.spellId.spellId
                     end
                 else
@@ -121,6 +128,7 @@ function LibAPL:Interpret()
             end
         end
     end
+    return nil
 end
 
 function APLInterpreter:ResetCache()
@@ -142,39 +150,85 @@ end
 
 APLInterpreter["and"] = function(self, level, vals)
     L.DebugLev(level, "and")
+    local ret = true
     for _,val in ipairs(vals.vals) do
         if not self:EvalCondition(level+1, val) then
-            return false
+            ret = false
+            break
         end
     end
-    return true
+    L.DebugLev(level+1, "result", ret)
+    return ret
 end
 
 APLInterpreter["or"] = function(self, level, vals)
     L.DebugLev(level, "or")
+    local ret = false
     for _,val in ipairs(vals.vals) do
         if self:EvalCondition(level+1, val) then
-            return true
+            ret = true
+            break
         end
     end
-    return false
+    L.DebugLev(level+1, "result", ret)
+    return ret
 end
 
 APLInterpreter["not"] = function(self, level, vals)
     L.DebugLev(level, "not")
-    return not self:EvalCondition(level+1, vals.val)
+    local ret = not self:EvalCondition(level+1, vals.val)
+    L.DebugLev(level+1, "result", ret)
+    return ret
+end
+
+function APLInterpreter:max(level, vals)
+    L.DebugLev(level, "max")
+    local ret = nil
+    for _,val in ipairs(vals.vals) do
+        local eval = tonumber(self:EvalCondition(level+1, val))
+        if ret == nil or ret < eval then
+            ret = eval
+        end
+    end
+    L.DebugLev(level+1, "result", ret)
+    return ret
+end
+
+function APLInterpreter:min(level, vals)
+    L.DebugLev(level, "min")
+    local ret = nil
+    for _,val in ipairs(vals.vals) do
+        local eval = tonumber(self:EvalCondition(level+1, val))
+        if ret == nil or eval < ret then
+            ret = eval
+        end
+    end
+    L.DebugLev(level+1, "result", ret)
+    return ret
 end
 
 function APLInterpreter:cmp(level, vals)
     local op = vals.op
     L.DebugLev(level, "cmp")
-    local ret = nil
     if self[op] then
         local ret = self[op](self, level+1, vals.lhs, vals.rhs)
         L.DebugLev(level+1, "result", ret)
         return ret
     else
         L.Warning("unknown comparison", op)
+        return nil
+    end
+end
+
+function APLInterpreter:math(level, vals)
+    local op = vals.op
+    L.DebugLev(level, "math")
+    if self[op] then
+        local ret = self[op](self, level+1, vals.lhs, vals.rhs)
+        L.DebugLev(level+1, "result", ret)
+        return ret
+    else
+        L.Warning("unknown math", op)
         return nil
     end
 end
@@ -212,6 +266,34 @@ function APLInterpreter:OpGe(level, lhs, rhs)
     local elhs = tonumber(self:EvalCondition(level+1, lhs))
     local erhs = tonumber(self:EvalCondition(level+1, rhs))
     return elhs >= erhs
+end
+
+function APLInterpreter:OpAdd(level, lhs, rhs)
+    L.DebugLev(level, "OpAdd +")
+    local elhs = tonumber(self:EvalCondition(level+1, lhs))
+    local erhs = tonumber(self:EvalCondition(level+1, rhs))
+    return elhs + erhs
+end
+
+function APLInterpreter:OpSub(level, lhs, rhs)
+    L.DebugLev(level, "OpSub -")
+    local elhs = tonumber(self:EvalCondition(level+1, lhs))
+    local erhs = tonumber(self:EvalCondition(level+1, rhs))
+    return elhs - erhs
+end
+
+function APLInterpreter:OpMul(level, lhs, rhs)
+    L.DebugLev(level, "OpMul *")
+    local elhs = tonumber(self:EvalCondition(level+1, lhs))
+    local erhs = tonumber(self:EvalCondition(level+1, rhs))
+    return elhs * erhs
+end
+
+function APLInterpreter:OpDiv(level, lhs, rhs)
+    L.DebugLev(level, "OpDiv /")
+    local elhs = tonumber(self:EvalCondition(level+1, lhs))
+    local erhs = tonumber(self:EvalCondition(level+1, rhs))
+    return elhs / erhs
 end
 
 function APLInterpreter:const(level, vals)
@@ -293,6 +375,15 @@ function APLInterpreter:auraIsActive(level, vals)
     return ret
 end
 
+function APLInterpreter:dotIsActive(level, vals)
+    local unit = L.UnitMap(vals.sourceUnit and vals.sourceUnit.type, "target")
+    local spellId = vals.spellId.spellId
+    self:generateAuraCache(unit)
+    local ret = self.cacheAura[unit][spellId] or 0
+    L.DebugLev(level, "dotIsActive", unit, spellId, "=", ret)
+    return ret
+end
+
 function APLInterpreter:auraRemainingTime(level, vals)
     local unit = L.UnitMap(vals.sourceUnit and vals.sourceUnit.type, "player")
     local spellId = vals.auraId.spellId
@@ -306,7 +397,7 @@ function APLInterpreter:dotRemainingTime(level, vals)
     local unit = L.UnitMap(vals.sourceUnit and vals.sourceUnit.type, "target")
     local spellId = vals.spellId.spellId
     self:generateAuraCache(unit)
-    local ret = self.cacheAura[unit][spellId] or 0
+    local ret = self.cacheAura[unit][spellId] ~= nil
     L.DebugLev(level, "dotRemainingTime", unit, spellId, "=", ret)
     return ret
 end
@@ -325,5 +416,44 @@ function APLInterpreter:spellTimeToready(level, vals)
         self.cacheSpells[spellId] = ret
     end
     L.DebugLev(level, "spellTimeToready", spellId, "=", ret)
+    return ret
+end
+
+function L.TargetHealthPercent()
+    local unit = "target"
+    local health = UnitHealth(unit)
+    local max_health = UnitHealthMax(unit)
+    return health / max_health
+end
+
+function APLInterpreter:remainingTime(level)
+    local ret = 0
+    -- rough estimate for 3 minute fight
+    ret = L.TargetHealthPercent() * 180
+    L.DebugLev(level, "remainingTime", "=", ret)
+    return ret
+end
+
+function APLInterpreter:remainingDurationPercent(level)
+    local ret = 0
+    -- rough estimate based on health
+    ret = L.TargetHealthPercent()
+    L.DebugLev(level, "remainingDurationPercent", "=", ret)
+    return ret
+end
+
+function L.IsExecutePhase(key)
+    if key == "E90" then
+        return 90 < L.TargetHealthPercent()
+    else
+        local pct = tonumber(key:sub(2))
+        return L.TargetHealthPercent() <= pct
+    end
+end
+
+function APLInterpreter:IsExecutePhase(level)
+    local ret = false
+    ret = L.IsExecutePhase("E90")
+    L.DebugLev(level, "IsExecutePhase", "=", ret)
     return ret
 end

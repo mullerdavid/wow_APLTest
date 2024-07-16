@@ -40,12 +40,15 @@ local function Init()
 				if action == "castSpell" then
 					local spellId = params
 					local spellName, _, spellIcon = GetSpellInfo(spellId)
+					f.texture:Show()
 					f.texture:SetTexture(spellIcon)
 					f.text:SetText(spellName)
 				else
+					f.texture:Hide()
 					f.text:SetText(action)
 				end
 			else
+				f.texture:Hide()
 				f.text:SetText("")
 			end
 		end
