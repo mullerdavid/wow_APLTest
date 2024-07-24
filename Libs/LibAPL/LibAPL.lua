@@ -1,16 +1,16 @@
 --[[
 Prepull
 Sequence related stuff
-wowsim extension - variables from outside
+wowsim extension - external functions/variables from outside, preprocess for const that starts with "external:" for interoparability
 
-move helper/getter functions to own class for reusability
 caching compute heavy stuff
 
-https://github.com/wowsims/wotlk/blob/7597c28d4145c235d001f0242e3c99c0f8edbdb8/proto/apl.proto
+https://github.com/wowsims/cata/blob/12776383d4ec556e69b1870fd0587accfb794bf8/proto/apl.proto
 
 JSON.stringify(JSON.parse(localStorage.getItem("__cata_assassination_rogue__currentSettings__")).player.rotation)
 
 Datastore?
+LibDRM?
 ]]--
 
 --region LibStub
@@ -43,6 +43,22 @@ local Logger = {}
 
 function Logger.Warning(...)
 	print("\124cFFFFFF00[APL]", ..., "\124r")
+end
+
+local FuncsUnknown = {}
+function Logger.Unknown(func)
+    if not FuncsUnknown[func] then
+        Logger.Warning(func, "is not unknown!")
+        FuncsUnknown[func] = true
+    end
+end
+
+local FuncsNotImplemented = {}
+function Logger.NotImplemented(func)
+    if not FuncsNotImplemented[func] then
+        Logger.Warning(func, "is not implemented!")
+        FuncsNotImplemented[func] = true
+    end
 end
 
 function Debug.DumpVar(arg, name)
@@ -98,6 +114,7 @@ local Helper = {}
 
 function Helper:New()
     local o = {
+        reaction = 0.1,
         time = 0,
         cacheAura = {},
         cacheSpells = {},
@@ -109,8 +126,10 @@ function Helper:New()
 end
 
 function Helper:ResetCache()
+    self.reaction = 0.1
     self.time = GetTime()
     self.gcd = self:GetSpellCooldownNoCache(61304) -- 61304 is Global Cooldown
+    self.autoattack = self:GetSpellCooldownNoCache(6603) -- 6603 is Auto Attack
     self.cacheAura = {}
     self.cacheSpells = {}
 end
@@ -148,30 +167,35 @@ function Helper:IsSpellReady(spellId)
 end
 
 function Helper:GenerateAuraCache(unit)
-    if self.cacheAura[unit] then
-        return
-    end
     local cache = {}
     for _, filter in ipairs( {"HELPFUL", "HARMFUL"} ) do
         for i = 1, 255 do
-            local name, _, _, _, _, expiration, _, _, _, spellId = UnitAura(unit, i, filter)
+            local name, _, count, _, _, expiration, _, _, _, spellId = UnitAura(unit, i, filter)
             if not name or not spellId then
                 break
             end
             local left = math.huge
-            if 0<expiration then
+            if 0 < expiration then
                 left = expiration - self.time
             end
-            cache[spellId] = left
-            cache[name] = left
+            spellId = tostring(spellId)
+            cache[spellId] = {left, count}
+            cache[name] = {left, count}
         end
     end
     self.cacheAura[unit] = cache
 end
 
 function Helper:GetAura(unit, spellId)
-    self:GenerateAuraCache(unit)
-    return self.cacheAura[unit][spellId]
+    if not self.cacheAura[unit] then
+        self:GenerateAuraCache(unit)
+    end
+    spellId = tostring(spellId)
+    local cached = self.cacheAura[unit][spellId]
+    if cached then
+        return cached[1], cached[2]
+    end
+    return nil, nil
 end
 
 local UnitMap = {
@@ -231,20 +255,31 @@ function Helper:CheckRange(unit, range, operator)
 end
 
 local function HelperEventsFunction(self, event, arg1)
+    -- Lightweight events only
 	if event == "PLAYER_REGEN_DISABLED" then
 		self.__last_combat_start = GetTime()
+    elseif event == "ENCOUNTER_START" then
+		self.__last_encounter = tonumber(arg1)
+    elseif event == "ENCOUNTER_END" then
+		self.__last_encounter = nil
 	end
 end
 
 local HelperEventsFrame = CreateFrame("Frame")
 HelperEventsFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+HelperEventsFrame:RegisterEvent("ENCOUNTER_START")
+HelperEventsFrame:RegisterEvent("ENCOUNTER_END")
 HelperEventsFrame:SetScript("OnEvent", HelperEventsFunction)
 
-function Helper:CombatTime()
+function Helper:GetCombatTime()
     if UnitAffectingCombat("player") and HelperEventsFrame.__last_combat_start then
         return self.time - HelperEventsFrame.__last_combat_start
     end
     return 0
+end
+
+function Helper:GetEncounterId()
+    return HelperEventsFrame.__last_encounter
 end
 
 --endregion
@@ -269,7 +304,7 @@ function APLInterpreter:EvalCondition(level, condition)
         if self[key] then
             return self[key](self, level+1, val)
         else
-            Logger.Warning("unknown condition", key)
+            Logger.Unknown("Condition "..key)
             return nil
         end
     end
@@ -342,7 +377,7 @@ function APLInterpreter:cmp(level, vals)
         Debug.DebugLev(level+1, "result", ret)
         return ret
     else
-        Logger.Warning("unknown comparison", op)
+        Logger.Unknown("Cmparison "..op)
         return nil
     end
 end
@@ -355,7 +390,7 @@ function APLInterpreter:math(level, vals)
         Debug.DebugLev(level+1, "result", ret)
         return ret
     else
-        Logger.Warning("unknown math", op)
+        Logger.Unknown("Math operator "..op)
         return nil
     end
 end
@@ -475,7 +510,19 @@ function APLInterpreter:currentComboPoints(level)
     return ret
 end
 
--- TODO: runic power, runes
+--[[
+currentRunicPower
+currentSolarEnergy
+currentLunarEnergy
+currentHolyPower
+currentRuneCount
+currentNonDeathRuneCount
+currentRuneDeath
+currentRuneActive
+runeCooldown
+nextRuneCooldown
+runeSlotCooldown
+]]--
 
 function APLInterpreter:unitIsMoving(level)
     local threshold = 0.01
@@ -487,6 +534,15 @@ function APLInterpreter:auraIsActive(level, vals)
     local unit = self.helper:UnitMap(vals.sourceUnit and vals.sourceUnit.type, "player")
     local spellId = vals.auraId.spellId
     local ret = self.helper:GetAura(unit, spellId) ~= nil
+    Debug.DebugLev(level, "auraIsActive", unit, spellId, "=", ret)
+    return ret
+end
+
+function APLInterpreter:AuraIsActiveWithReactionTime(level, vals)
+    local unit = self.helper:UnitMap(vals.sourceUnit and vals.sourceUnit.type, "player")
+    local spellId = vals.auraId.spellId
+    local left = self.helper:GetAura(unit, spellId) or 0
+    local ret = self.helper.reaction < left
     Debug.DebugLev(level, "auraIsActive", unit, spellId, "=", ret)
     return ret
 end
@@ -515,6 +571,49 @@ function APLInterpreter:dotRemainingTime(level, vals)
     return ret
 end
 
+function APLInterpreter:auraIsKnown(level, vals)
+    local spellId = vals.auraId.spellId
+    local ret = false
+    -- TODO: implement, need database for sources
+    Logger.NotImplemented("auraIsKnown")
+    Debug.DebugLev(level, "auraIsKnown", spellId, "=", ret)
+    return ret
+end
+
+function APLInterpreter:auraNumStacks(level, vals)
+    local unit = self.helper:UnitMap(vals.sourceUnit and vals.sourceUnit.type, "player")
+    local spellId = vals.auraId.spellId
+    local _, count = self.helper:GetAura(unit, spellId)
+    local ret = count or 0
+    Debug.DebugLev(level, "auraNumStacks", unit, spellId, "=", ret)
+    return ret
+end
+
+function APLInterpreter:auraShouldRefresh(level, vals)
+    local spellId = vals.auraId.spellId
+    local ret = false
+    -- TODO: implement, maxOverlap 
+    Logger.NotImplemented("auraShouldRefresh")
+    Debug.DebugLev(level, "auraShouldRefresh", spellId, "=", ret)
+    return ret
+end
+
+function APLInterpreter:dotTickFrequency(level, vals)
+    local spellId = vals.auraId.spellId
+    local ret = false
+    -- TODO: implement, need database it?
+    Logger.NotImplemented("dotTickFrequency")
+    Debug.DebugLev(level, "dotTickFrequency", spellId, "=", ret)
+    return ret
+end
+
+--[[
+auraInternalCooldown
+auraIcdIsReadyWithReactionTime
+
+aura/dot source?
+]]--
+
 function APLInterpreter:spellTimeToready(level, vals)
     local spellId = vals.spellId.spellId
     local ret = self.helper:GetSpellCooldown(spellId)
@@ -530,7 +629,7 @@ function APLInterpreter:spellIsReady(level, vals)
 end
 
 function APLInterpreter:currentTime(level)
-    local ret = self.helper:CombatTime()
+    local ret = self.helper:GetCombatTime()
     Debug.DebugLev(level, "currentTime", "=", ret)
     return ret
 end
@@ -543,7 +642,20 @@ function APLInterpreter:currentTimePercent(level)
 end
 
 function APLInterpreter:remainingTime(level)
-    -- rough estimate for 3 minute fight
+    local health = self.helper:HealthPercent("target")
+    local encounter = self.helper:GetEncounterId()
+    local ret = 30
+    if encounter and health > 95 then
+        -- rough estimate for 3 minutes boss fight
+        ret = health * 3 * 60
+    elseif not encounter and health > 85 then
+        -- rough estimate for 30 seconds normal fight
+        ret = health * 30
+    else
+        -- rough estimate based on health
+        local ellapsed = self.helper:GetCombatTime()
+        ret = ellapsed * health / (1-health)
+    end
     local ret = self.helper:HealthPercent("target") * 3 * 60
     Debug.DebugLev(level, "remainingTime", "=", ret)
     return ret
@@ -571,19 +683,22 @@ end
 function APLInterpreter:frontOfTarget(level)
     local ret = false
     -- TODO: possible?
+    Logger.NotImplemented("frontOfTarget")
     Debug.DebugLev(level, "frontOfTarget", "=", ret)
     return ret
 end
 
 function APLInterpreter:bossSpellIsCasting(level)
-    -- TODO: implement
     local ret = false
+    -- TODO: implement
+    Logger.NotImplemented("bossSpellIsCasting")
     Debug.DebugLev(level, "bossSpellIsCasting", "=", ret)
 end
 
 function APLInterpreter:bossSpellTimeToReady(level)
-    -- TODO: possible? dbm?
     local ret = 0
+    -- TODO: possible? dbm?
+    Logger.NotImplemented("bossSpellTimeToReady")
     Debug.DebugLev(level, "bossSpellTimeToReady", "=", ret)
 end
 
@@ -597,9 +712,33 @@ function APLInterpreter:gcdIsReady(level)
     Debug.DebugLev(level, "gcdIsReady", "=", ret)
 end
 
--- TODO: autoTimeToNext
+function APLInterpreter:autoTimeToNext(level)
+    local ret = self.helper.autoattack
+    Debug.DebugLev(level, "autoTimeToNext", "=", ret)
+end
 
--- TODO: spell / aura stuff
+--[[
+spellIsKnown
+spellCanCast
+spellIsReady
+spellCastTime
+spellTravelTime
+spellCpm
+spellIsChanneling
+spellChanneledTicks
+spellCurrentCost
+sequenceIsComplete
+sequenceIsReady
+sequenceTimeToReady
+channelClipDelay
+inputDelay
+totemRemainingTime
+catExcessEnergy
+catNewSavageRoarDuration
+warlockShouldRecastDrainSoul
+warlockShouldRefreshCorruption
+druidCurrentEclipsePhase
+]]--
 
 --endregion
 
@@ -640,7 +779,7 @@ function LibAPL:Interpret()
         local act = val.action
         if not val.hide then
             Debug.DebugClear()
-            Debug.Debug(interpreter.helper:CombatTime())
+            Debug.Debug(interpreter.helper:GetCombatTime())
             local cond = act.condition == nil or interpreter:EvalCondition(-1, act.condition)
             if cond then
                 if act.autocastOtherCooldowns then
