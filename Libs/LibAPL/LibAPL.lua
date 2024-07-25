@@ -2,6 +2,7 @@
 Prepull
 Sequence related stuff
 wowsim extension - external functions/variables from outside, preprocess for const that starts with "external:" for interoparability
+aura/dot source?
 
 caching compute heavy stuff
 
@@ -510,19 +511,93 @@ function APLInterpreter:currentComboPoints(level)
     return ret
 end
 
---[[
-currentRunicPower
-currentSolarEnergy
-currentLunarEnergy
-currentHolyPower
-currentRuneCount
-currentNonDeathRuneCount
-currentRuneDeath
-currentRuneActive
-runeCooldown
-nextRuneCooldown
-runeSlotCooldown
-]]--
+function APLInterpreter:currentRunicPower(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("currentRunicPower")
+    Debug.DebugLev(level, "currentRunicPower", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentSolarEnergy(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("currentSolarEnergy")
+    Debug.DebugLev(level, "currentSolarEnergy", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentLunarEnergy(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("currentLunarEnergy")
+    Debug.DebugLev(level, "currentLunarEnergy", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentHolyPower(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("currentHolyPower")
+    Debug.DebugLev(level, "currentHolyPower", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentRuneCount(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("currentRuneCount")
+    Debug.DebugLev(level, "currentRuneCount", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentNonDeathRuneCount(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("currentNonDeathRuneCount")
+    Debug.DebugLev(level, "currentNonDeathRuneCount", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentRuneDeath(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("currentRuneDeath")
+    Debug.DebugLev(level, "currentRuneDeath", "=", ret)
+    return ret
+end
+
+function APLInterpreter:currentRuneActive(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("currentRuneActive")
+    Debug.DebugLev(level, "currentRuneActive", "=", ret)
+    return ret
+end
+
+function APLInterpreter:runeCooldown(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("runeCooldown")
+    Debug.DebugLev(level, "runeCooldown", "=", ret)
+    return ret
+end
+
+function APLInterpreter:nextRuneCooldown(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("nextRuneCooldown")
+    Debug.DebugLev(level, "nextRuneCooldown", "=", ret)
+    return ret
+end
+
+function APLInterpreter:runeSlotCooldown(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("runeSlotCooldown")
+    Debug.DebugLev(level, "runeSlotCooldown", "=", ret)
+    return ret
+end
 
 function APLInterpreter:unitIsMoving(level)
     local threshold = 0.01
@@ -607,12 +682,19 @@ function APLInterpreter:dotTickFrequency(level, vals)
     return ret
 end
 
---[[
-auraInternalCooldown
-auraIcdIsReadyWithReactionTime
+function APLInterpreter:auraInternalCooldown(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("auraInternalCooldown")
+    Debug.DebugLev(level, "auraInternalCooldown", "=", ret)
+end
 
-aura/dot source?
-]]--
+function APLInterpreter:auraIcdIsReadyWithReactionTime(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("auraIcdIsReadyWithReactionTime")
+    Debug.DebugLev(level, "auraIcdIsReadyWithReactionTime", "=", ret)
+end
 
 function APLInterpreter:spellTimeToready(level, vals)
     local spellId = vals.spellId.spellId
@@ -717,28 +799,129 @@ function APLInterpreter:autoTimeToNext(level)
     Debug.DebugLev(level, "autoTimeToNext", "=", ret)
 end
 
---[[
-spellIsKnown
-spellCanCast
-spellIsReady
-spellCastTime
-spellTravelTime
-spellCpm
-spellIsChanneling
-spellChanneledTicks
-spellCurrentCost
-sequenceIsComplete
-sequenceIsReady
-sequenceTimeToReady
-channelClipDelay
-inputDelay
-totemRemainingTime
-catExcessEnergy
-catNewSavageRoarDuration
-warlockShouldRecastDrainSoul
-warlockShouldRefreshCorruption
-druidCurrentEclipsePhase
-]]--
+function APLInterpreter:spellIsKnown(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("spellIsKnown")
+    Debug.DebugLev(level, "spellIsKnown", "=", ret)
+end
+
+function APLInterpreter:spellCanCast(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("spellCanCast")
+    Debug.DebugLev(level, "spellCanCast", "=", ret)
+end
+
+function APLInterpreter:spellTravelTime(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("spellTravelTime")
+    Debug.DebugLev(level, "spellTravelTime", "=", ret)
+end
+
+function APLInterpreter:spellCpm(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("spellCpm")
+    Debug.DebugLev(level, "spellCpm", "=", ret)
+end
+
+function APLInterpreter:spellIsChanneling(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("spellIsChanneling")
+    Debug.DebugLev(level, "spellIsChanneling", "=", ret)
+end
+
+function APLInterpreter:spellChanneledTicks(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("spellChanneledTicks")
+    Debug.DebugLev(level, "spellChanneledTicks", "=", ret)
+end
+
+function APLInterpreter:spellCurrentCost(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("spellCurrentCost")
+    Debug.DebugLev(level, "spellCurrentCost", "=", ret)
+end
+
+function APLInterpreter:channelClipDelay(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("channelClipDelay")
+    Debug.DebugLev(level, "channelClipDelay", "=", ret)
+end
+
+function APLInterpreter:inputDelay(level, vals)
+    local ret = self.helper.reaction
+    Debug.DebugLev(level, "inputDelay", "=", ret)
+end
+
+function APLInterpreter:totemRemainingTime(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("totemRemainingTime")
+    Debug.DebugLev(level, "totemRemainingTime", "=", ret)
+end
+
+function APLInterpreter:catExcessEnergy(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("catExcessEnergy")
+    Debug.DebugLev(level, "catExcessEnergy", "=", ret)
+end
+
+function APLInterpreter:catNewSavageRoarDuration(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("catNewSavageRoarDuration")
+    Debug.DebugLev(level, "catNewSavageRoarDuration", "=", ret)
+end
+
+function APLInterpreter:warlockShouldRecastDrainSoul(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("warlockShouldRecastDrainSoul")
+    Debug.DebugLev(level, "warlockShouldRecastDrainSoul", "=", ret)
+end
+
+function APLInterpreter:warlockShouldRefreshCorruption(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("warlockShouldRefreshCorruption")
+    Debug.DebugLev(level, "warlockShouldRefreshCorruption", "=", ret)
+end
+
+function APLInterpreter:druidCurrentEclipsePhase(level)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("druidCurrentEclipsePhase")
+    Debug.DebugLev(level, "druidCurrentEclipsePhase", "=", ret)
+end
+
+function APLInterpreter:sequenceIsComplete(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("sequenceIsComplete")
+    Debug.DebugLev(level, "sequenceIsComplete", "=", ret)
+end
+
+function APLInterpreter:sequenceIsReady(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("sequenceIsReady")
+    Debug.DebugLev(level, "sequenceIsReady", "=", ret)
+end
+
+function APLInterpreter:sequenceTimeToReady(level, vals)
+    local ret = 0
+    -- TODO: implement
+    Logger.NotImplemented("sequenceTimeToReady")
+    Debug.DebugLev(level, "sequenceTimeToReady", "=", ret)
+end
 
 --endregion
 

@@ -34,6 +34,25 @@ T.APL.Rogue_Combat = {
                 }
               }
             }
+          }, {
+            cmp = {
+              op = "OpGt",
+              lhs = {
+                auraNumStacks = {
+                  auraId = {
+                    spellId = 2818
+                  },
+                  sourceUnit = {
+                    type = "Target"
+                  }
+                }
+              },
+              rhs = {
+                const = {
+                  val = "-1"
+                }
+              }
+            }
           } }
         }
       },
