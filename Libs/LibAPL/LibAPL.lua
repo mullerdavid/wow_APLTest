@@ -117,7 +117,11 @@ end
 local Sequence = {}
 
 local function ActionsEqual(a, b)
-    return a == b -- TODO: check properly
+    -- TODO: check properly
+    if a.castSpell and b.castSpell then
+        return a.castSpell.spellId.spellId == b.castSpell.spellId.spellId
+    end
+    return false
 end
 
 function Sequence:New(actions, timeout)
@@ -150,7 +154,7 @@ function Sequence:Step()
 end
 
 function Sequence:StepIfNext(action)
-    next = self:Next()
+    local next = self:Next()
     if ActionsEqual(next, action) then
         self:Step()
     end
@@ -846,6 +850,16 @@ function LibAPL:StrictSequenceNext()
         return select(2, self:HandleAction(self.strictSequence:Next()))
     end
     return nil
+end
+
+function LibAPL:StrictSequenceStep(action)
+    if self.strictSequence ~= nil then
+        if action ~= nil then
+            self.strictSequence:StepIfNext(action)
+        else
+            self.strictSequence:Step()
+        end
+    end
 end
 
 function LibAPL:StrictSequenceClear()

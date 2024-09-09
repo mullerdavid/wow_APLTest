@@ -61,6 +61,18 @@ local function Init()
 		end
 	end
 
+	local function EventHandler(self, event, arg1, arg2, arg3)
+		if event == "UNIT_SPELLCAST_SUCCEEDED" then
+			local spell_id = arg3
+			local action = { castSpell = { spellId = { spellId = spell_id } } }
+			runner:StrictSequenceStep(action)
+		end
+	end
+
+	f:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+	f:SetScript("OnEvent", EventHandler)
+
+
 	--DevTools_Dump(variable)
 
 	f:HookScript("OnUpdate", L.DoUpdate )
