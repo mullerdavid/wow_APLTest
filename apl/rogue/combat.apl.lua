@@ -128,7 +128,7 @@ T.APL.Rogue_Combat = {
   }, {
     action = {
       condition = {
-        ["or"] = {
+        ["and"] = {
           vals = { {
             cmp = {
               op = "OpGt",
@@ -143,6 +143,12 @@ T.APL.Rogue_Combat = {
                 const = {
                   val = "15"
                 }
+              }
+            }
+          },{
+            spellIsReady = {
+              spellId = {
+                spellId = 13750
               }
             }
           } }
