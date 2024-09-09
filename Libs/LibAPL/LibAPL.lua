@@ -4,6 +4,8 @@ local LIB_VERSION_MAJOR, LIB_VERSION_MINOR = "LibAPL-1.0", 1
 
 ---@class LibAPL-1.0
 ---@field apl table
+---@field strictSequence? Sequence
+---@field timeout number
 local LibAPL = LibStub:NewLibrary(LIB_VERSION_MAJOR, LIB_VERSION_MINOR)
 if not LibAPL then
     return
@@ -14,9 +16,23 @@ local LibAPLHelper = LibStub:GetLibrary("LibAPLHelper-1.0")
 --endregion
 
 --[[
-Sequence related stuff
+Actions:
+    CastSpell (CastFriendlySpell)
     StrictSequence
-    NormalSequence
+    Sequence (if has no name, generate random uuid and assign it on tree)
+    ResetSequence
+    ChannelSpell
+    ActivateAura
+    CancelAura
+    Multidot
+    MultiShield
+    WaitUntil ???
+    AutocastOtherCooldowns ???
+--]]
+
+--[[
+TODO:
+Sequence related stuff
 Prepull
 wowsim extension - external functions/variables from outside, preprocess for const that starts with "external:" for interoparability
 aura/dot source?
@@ -86,6 +102,57 @@ end
 function Debug.DebugLev(level, ...)
 	if Debug.__debug then
         Debug.__debug(string.rep("  ", level), ...)
+    end
+end
+
+--endregion
+
+--region Sequence
+
+---@class Sequence
+---@field actions table
+---@field idx number
+---@field last_activity number
+---@field timeout? number
+local Sequence = {}
+
+local function ActionsEqual(a, b)
+    return a == b -- TODO: check properly
+end
+
+function Sequence:New(actions, timeout)
+    local o = {
+        actions = actions, -- TODO: flatten other strictsequnces ??
+        idx = 1,
+        last_activity = GetTime(),
+        timeout = timeout,
+    }
+    setmetatable(o, self)
+    self.__index = self
+    return o
+end
+
+function Sequence:Timouted()
+    return self.timeout and (self.last_activity + self.timeout) < GetTime()
+end
+
+function Sequence:Finished()
+    return #self.actions < self.idx or (self.timeout and (self.last_activity + self.timeout) < GetTime())
+end
+
+function Sequence:Next()
+    return self.actions[self.idx]
+end
+
+function Sequence:Step()
+    self.last_activity = GetTime()
+    self.idx = self.idx + 1
+end
+
+function Sequence:StepIfNext(action)
+    next = self:Next()
+    if ActionsEqual(next, action) then
+        self:Step()
     end
 end
 
@@ -733,14 +800,19 @@ end
 
 --region LibAPL
 
----Creates new APL object, accepts wowsim apl like table
+---Creates new APL object, accepts WoWSimAPL like table and (strict sequence) timeout (default 15s)
 ---@param apltable table
+---@param timeout? number
 ---@return LibAPL-1.0
-function LibAPL:New(apltable)
+function LibAPL:New(apltable, timeout)
     if apltable.type ~= "TypeAPL" then
         error("invalid apl")
     end
-    local o = { apl = apltable.priorityList, x = 1 }
+    local o = {
+        apl = apltable.priorityList,
+        strictSequence = nil,
+        timeout = timeout or 15
+    }
     setmetatable(o, self)
     self.__index = self
     return o
@@ -759,9 +831,52 @@ function LibAPL:DetachDebugger()
 end
 
 function LibAPL:Run()
+    if self.strictSequence ~= nil then
+        if self.strictSequence:Finished() or self.strictSequence:Timouted() then
+            self:StrictSequenceClear()
+        else
+            return "strictSequence"
+        end
+    end
     return self:Interpret()
 end
 
+function LibAPL:StrictSequenceNext()
+    if self.strictSequence ~= nil then
+        return select(2, self:HandleAction(self.strictSequence:Next()))
+    end
+    return nil
+end
+
+function LibAPL:StrictSequenceClear()
+    self.strictSequence = nil
+end
+
+local function ExtractFirstKey(tab)
+    for k,_ in pairs(tab) do
+        return tostring(k)
+    end
+    return "<empty>"
+end
+
+---Returns if we handle the action and the action converted from WoWSimAPL to LibAPL
+---@return boolean, string?, ...
+function LibAPL:HandleAction(action)
+    if action.autocastOtherCooldowns then
+        return false
+    elseif action.strictSequence then
+        self.strictSequence = Sequence:New(action.strictSequence.actions, self.timeout)
+        return true, "strictSequence"
+    elseif action.castSpell then
+        local vals = action.castSpell
+        return true, "castSpell", vals.spellId.spellId
+    else
+        Logger.Warning("unknown action " + ExtractFirstKey(action))
+        return true
+    end
+end
+
+---@return string?, ...
 function LibAPL:Interpret()
     local interpreter = APLInterpreter:New()
     for _,val in ipairs(self.apl) do
@@ -771,20 +886,10 @@ function LibAPL:Interpret()
             Debug.Debug(interpreter.helper:GetCombatTime())
             local cond = act.condition == nil or interpreter:EvalCondition(-1, act.condition)
             if cond then
-                if act.autocastOtherCooldowns then
-                    -- do nothing
-                elseif act.strictSequence then
-                    return "strictSequence", act.strictSequence
-                elseif act.castSpell then
-                    local vals = act.castSpell
-                    -- final check if spell is ready
-                    -- TODO: should move to caller?
-                    if interpreter:spellIsReady(1, vals) or true then
-                        return "castSpell", vals.spellId.spellId
-                    end
-                else
-                    Logger.Warning("unknown action")
-                    return nil
+                local ret = {self:HandleAction(act)}
+                local handled = ret[1]
+                if handled then
+                    return select(2, unpack(ret))
                 end
             end
         end

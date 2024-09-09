@@ -30,6 +30,22 @@ local function Init()
 	f:Show()
 
 	local runner = LAPL:New(T.APL.Rogue_Combat)
+	
+	L.DrawAction = function(self, action, params)
+		if action == "castSpell" then
+			local spellId = params
+			local spellName, _, spellIcon = GetSpellInfo(spellId)
+			f.texture:Show()
+			f.texture:SetTexture(spellIcon)
+			f.text:SetText(spellName)
+		elseif action == "strictSequence" then
+			L:DrawAction(runner:StrictSequenceNext())
+		else
+			f.texture:Hide()
+			f.text:SetText(action)
+		end
+	end
+
 	local timeElapsed = 0
 	L.DoUpdate = function(self, elapsed)
 		timeElapsed = timeElapsed + elapsed
@@ -37,16 +53,7 @@ local function Init()
 			timeElapsed = 0
 			if UnitExists("target") then
 				local action, params = runner:Run()
-				if action == "castSpell" then
-					local spellId = params
-					local spellName, _, spellIcon = GetSpellInfo(spellId)
-					f.texture:Show()
-					f.texture:SetTexture(spellIcon)
-					f.text:SetText(spellName)
-				else
-					f.texture:Hide()
-					f.text:SetText(action)
-				end
+				L:DrawAction(action, params)
 			else
 				f.texture:Hide()
 				f.text:SetText("")
