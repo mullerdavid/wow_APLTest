@@ -903,6 +903,12 @@ function LibAPL:Interpret()
                 local ret = {self:HandleAction(act)}
                 local handled = ret[1]
                 if handled then
+                    if Debug.__debug and ret[2] == "strictSequence" then
+                        Debug.DebugLev(0, "Strict Sequence Mode")
+                        for i,v in ipairs(self.strictSequence.actions) do
+                            Debug.DebugLev(1, v.castSpell.spellId.spellId)
+                        end
+                    end
                     return select(2, unpack(ret))
                 end
             end
