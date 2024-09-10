@@ -39,7 +39,7 @@ local function Init()
 			f.texture:SetTexture(spellIcon)
 			f.text:SetText(spellName)
 		elseif action == "strictSequence" then
-			L:DrawAction(runner:StrictSequenceNext())
+			L:DrawAction(runner:SequenceNext())
 		else
 			f.texture:Hide()
 			f.text:SetText(action)
@@ -65,7 +65,7 @@ local function Init()
 		if event == "UNIT_SPELLCAST_SUCCEEDED" then
 			local spell_id = arg3
 			local action = { castSpell = { spellId = { spellId = spell_id } } }
-			runner:StrictSequenceStep(action)
+			runner:SequenceStep(action)
 		end
 	end
 

@@ -4,7 +4,8 @@ local LIB_VERSION_MAJOR, LIB_VERSION_MINOR = "LibAPL-1.0", 1
 
 ---@class LibAPL-1.0
 ---@field apl table
----@field strictSequence? Sequence
+---@field sequences table<string, Sequence>
+---@field sequence_stack table<string>
 ---@field timeout number
 local LibAPL = LibStub:NewLibrary(LIB_VERSION_MAJOR, LIB_VERSION_MINOR)
 if not LibAPL then
@@ -33,9 +34,12 @@ Actions:
 --[[
 TODO:
 Sequence related stuff
+    Generic Sequence store (k/v pairs), stack based tracker
+    https://github.com/search?q=repo%3Awowsims%2Fcata+%22%5C%22sequence%5C%22%22&type=code
 Prepull
 wowsim extension - external functions/variables from outside, preprocess for const that starts with "external:" for interoparability
 aura/dot source?
+Parameter to auto advance sequences?
 
 caching compute heavy stuff
 
@@ -111,6 +115,7 @@ end
 
 ---@class Sequence
 ---@field actions table
+---@field strict boolean
 ---@field idx number
 ---@field last_activity number
 ---@field timeout? number
@@ -124,9 +129,10 @@ local function ActionsEqual(a, b)
     return false
 end
 
-function Sequence:New(actions, timeout)
+function Sequence:New(actions, strict, timeout)
     local o = {
         actions = actions, -- TODO: flatten other strictsequnces ??
+        strict = strict or false,
         idx = 1,
         last_activity = GetTime(),
         timeout = timeout,
@@ -158,6 +164,10 @@ function Sequence:StepIfNext(action)
     if ActionsEqual(next, action) then
         self:Step()
     end
+end
+
+function Sequence:Reset()
+    self.idx = 1
 end
 
 --endregion
@@ -615,7 +625,7 @@ function APLInterpreter:remainingTime(level)
         local ellapsed = self.helper:GetCombatTime()
         ret = ellapsed * health / (1-health)
     end
-    local ret = self.helper:HealthPercent("target") * 3 * 60
+    ret = self.helper:HealthPercent("target") * 3 * 60
     Debug.DebugLev(level, "remainingTime", "=", ret)
     return ret
 end
@@ -814,7 +824,8 @@ function LibAPL:New(apltable, timeout)
     end
     local o = {
         apl = apltable.priorityList,
-        strictSequence = nil,
+        sequences = {},
+        sequence_stack = {},
         timeout = timeout or 15
     }
     setmetatable(o, self)
@@ -834,38 +845,6 @@ function LibAPL:DetachDebugger()
     Debug.__dump = nil
 end
 
-function LibAPL:Run()
-    if self.strictSequence ~= nil then
-        if self.strictSequence:Finished() or self.strictSequence:Timouted() then
-            self:StrictSequenceClear()
-        else
-            return "strictSequence"
-        end
-    end
-    return self:Interpret()
-end
-
-function LibAPL:StrictSequenceNext()
-    if self.strictSequence ~= nil then
-        return select(2, self:HandleAction(self.strictSequence:Next()))
-    end
-    return nil
-end
-
-function LibAPL:StrictSequenceStep(action)
-    if self.strictSequence ~= nil then
-        if action ~= nil then
-            self.strictSequence:StepIfNext(action)
-        else
-            self.strictSequence:Step()
-        end
-    end
-end
-
-function LibAPL:StrictSequenceClear()
-    self.strictSequence = nil
-end
-
 local function ExtractFirstKey(tab)
     for k,_ in pairs(tab) do
         return tostring(k)
@@ -873,14 +852,49 @@ local function ExtractFirstKey(tab)
     return "<empty>"
 end
 
+local key_counter = 0
+local function SequenceKey()
+    key_counter = key_counter + 1
+    local key = "sequence-"..key_counter
+    return key
+end
+
+---@param self LibAPL-1.0
+---@param action table
+local function AddSequenceIfNotExists(self, action)
+    if not action.name then
+        action.name = SequenceKey()
+    end
+    if not self.sequences[action.name] then
+        local sequence
+        if action.strictSequence then
+            sequence = Sequence:New(action.strictSequence.actions, true, self.timeout)
+        elseif action.sequence then
+            sequence = Sequence:New(action.sequence.actions)
+        end
+        self.sequences[action.name] = sequence
+    end
+end
+
 ---Returns if we handle the action and the action converted from WoWSimAPL to LibAPL
+---@param self LibAPL-1.0
+---@param action table
 ---@return boolean, string?, ...
-function LibAPL:HandleAction(action)
+local function HandleAction(self, action)
     if action.autocastOtherCooldowns then
         return false
     elseif action.strictSequence then
-        self.strictSequence = Sequence:New(action.strictSequence.actions, self.timeout)
+        AddSequenceIfNotExists(self, action)
+        if self.sequence_stack[#self.sequence_stack] ~= action.name then
+            self.sequence_stack[#self.sequence_stack + 1] = action.name
+        end
         return true, "strictSequence"
+    elseif action.sequence then
+        AddSequenceIfNotExists(self, action)
+        if self.sequence_stack[#self.sequence_stack] ~= action.name then
+            self.sequence_stack[#self.sequence_stack + 1] = action.name
+        end
+        return true, "sequence"
     elseif action.castSpell then
         local vals = action.castSpell
         return true, "castSpell", vals.spellId.spellId
@@ -888,6 +902,69 @@ function LibAPL:HandleAction(action)
         Logger.Warning("unknown action " + ExtractFirstKey(action))
         return true
     end
+end
+
+local function HasStrictSequenceActive(self)
+    for i = #self.sequence_stack, 1, -1 do
+        local seq = self.sequences[self.sequence_stack[i]]
+        if seq:Finished() or seq:Timouted() then
+            if seq.strict then
+                seq:Reset()
+            end
+            table.remove(self.sequence_stack, i)
+        elseif seq.strict then
+            return true
+        end
+    end
+    return false
+end
+
+function LibAPL:Run()
+    if HasStrictSequenceActive(self) then
+        -- TODO: clear sequence if timeout or finished
+        return "strictSequence"
+    end
+    return self:Interpret()
+end
+
+function LibAPL:SequenceNext()
+    if 0 < #self.sequence_stack then
+        while true do
+            local seq = self.sequences[self.sequence_stack[#self.sequence_stack]]
+            local act = seq:Next()
+            local ret = {HandleAction(self, act)}
+            local handled = ret[1]
+            if handled then
+                if not act.strictSequence and not act.sequence then
+                    return select(2, unpack(ret))
+                else
+                    seq:Step()
+                end
+            else
+                seq:Step()
+            end
+        end
+    end
+    return nil
+end
+
+function LibAPL:SequenceStep(action)
+    if 0 < #self.sequence_stack then
+        local seq = self.sequences[self.sequence_stack[#self.sequence_stack]]
+        if action ~= nil then
+            seq:StepIfNext(action)
+        else
+            seq:Step()
+        end
+    end
+end
+
+function LibAPL:SequenceClear()
+    self.sequence_stack.remove(#self.sequence_stack)
+end
+
+function LibAPL:SequenceClearAll()
+    self.sequence_stack = {}
 end
 
 ---@return string?, ...
@@ -900,12 +977,13 @@ function LibAPL:Interpret()
             Debug.Debug(interpreter.helper:GetCombatTime())
             local cond = act.condition == nil or interpreter:EvalCondition(-1, act.condition)
             if cond then
-                local ret = {self:HandleAction(act)}
+                local ret = {HandleAction(self, act)}
                 local handled = ret[1]
                 if handled then
                     if Debug.__debug and ret[2] == "strictSequence" then
+                        local seq = self.sequences[self.sequence_stack[#self.sequence_stack]]
                         Debug.DebugLev(0, "Strict Sequence Mode")
-                        for i,v in ipairs(self.strictSequence.actions) do
+                        for _,v in ipairs(seq.actions) do
                             Debug.DebugLev(1, v.castSpell.spellId.spellId)
                         end
                     end
