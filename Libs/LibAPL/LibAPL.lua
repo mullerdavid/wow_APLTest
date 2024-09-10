@@ -170,6 +170,10 @@ function Sequence:Reset()
     self.idx = 1
 end
 
+function Sequence:Activity()
+    self.last_activity = GetTime()
+end
+
 --endregion
 
 --region APLInterpreter
@@ -855,7 +859,7 @@ end
 local key_counter = 0
 local function SequenceKey()
     key_counter = key_counter + 1
-    local key = "sequence-"..key_counter
+    local key = "unnamed-sequence-"..key_counter
     return key
 end
 
@@ -873,6 +877,8 @@ local function AddSequenceIfNotExists(self, action)
             sequence = Sequence:New(action.sequence.actions)
         end
         self.sequences[action.name] = sequence
+    else
+        self.sequences[action.name]:Activity()
     end
 end
 
@@ -921,7 +927,6 @@ end
 
 function LibAPL:Run()
     if HasStrictSequenceActive(self) then
-        -- TODO: clear sequence if timeout or finished
         return "strictSequence"
     end
     return self:Interpret()

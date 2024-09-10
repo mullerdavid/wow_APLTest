@@ -38,7 +38,7 @@ local function Init()
 			f.texture:Show()
 			f.texture:SetTexture(spellIcon)
 			f.text:SetText(spellName)
-		elseif action == "strictSequence" then
+		elseif action == "strictSequence" or action == "sequence" then
 			L:DrawAction(runner:SequenceNext())
 		else
 			f.texture:Hide()
