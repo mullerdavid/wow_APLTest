@@ -5,12 +5,13 @@ local LIB_VERSION_MAJOR, LIB_VERSION_MINOR = "LibAPLHelper-1.0", 1
 ---@class LibAPLHelper-1.0
 ---@field time number
 ---@field gcd number
----@field cacheAura table
----@field cacheSpells table
+---@field cache_aura table
+---@field cache_spells table
 local LibAPLHelper = LibStub:NewLibrary(LIB_VERSION_MAJOR, LIB_VERSION_MINOR)
 if not LibAPLHelper then
     return
 end
+LibAPLHelper.Global = {}
 
 local LibRangeCheck = LibStub:GetLibrary("LibRangeCheck-3.0")
 
@@ -30,7 +31,29 @@ if UnitAura == nil then
     end
 end
 
--- endregion
+--endregion
+
+--region Hooks
+
+hooksecurefunc(C_PartyInfo, "DoCountdown", function(seconds)
+    LibAPLHelper.Global.pull_timer_length = seconds
+    LibAPLHelper.Global.pull_timer_start = GetTime()
+end)
+
+--endregion
+
+--region Helper static
+
+function LibAPLHelper.Global.PrePullLeft()
+    local time = GetTime()
+    local left = 0
+    if LibAPLHelper.Global.pull_timer_start ~= nil then
+        left = LibAPLHelper.Global.pull_timer_start + LibAPLHelper.Global.pull_timer_length - time
+    end
+    return math.max(0, left)
+end
+
+--endregion
 
 --region Helper
 
@@ -38,8 +61,8 @@ function LibAPLHelper:New()
     local o = {
         reaction = 0.1,
         time = 0,
-        cacheAura = {},
-        cacheSpells = {},
+        cache_aura = {},
+        cache_spells = {},
     }
     setmetatable(o, self)
     self.__index = self
@@ -52,8 +75,8 @@ function LibAPLHelper:ResetCache()
     self.time = GetTime()
     self.gcd = self:GetSpellCooldownNoCache(61304) -- 61304 is Global Cooldown
     self.autoattack = self:GetSpellCooldownNoCache(6603) -- 6603 is Auto Attack
-    self.cacheAura = {}
-    self.cacheSpells = {}
+    self.cache_aura = {}
+    self.cache_spells = {}
 end
 
 function LibAPLHelper:HealthPercent(unit)
@@ -76,11 +99,11 @@ end
 
 function LibAPLHelper:GetSpellCooldown(spellId)
     local ret = 0
-    if self.cacheSpells[spellId] then
-        return self.cacheSpells[spellId]
+    if self.cache_spells[spellId] then
+        return self.cache_spells[spellId]
     else
         ret = self:GetSpellCooldownNoCache(spellId)
-        self.cacheSpells[spellId] = ret
+        self.cache_spells[spellId] = ret
     end
     return ret
 end
@@ -106,15 +129,15 @@ function LibAPLHelper:GenerateAuraCache(unit)
             cache[name] = {left, count}
         end
     end
-    self.cacheAura[unit] = cache
+    self.cache_aura[unit] = cache
 end
 
 function LibAPLHelper:GetAura(unit, spellId)
-    if not self.cacheAura[unit] then
+    if not self.cache_aura[unit] then
         self:GenerateAuraCache(unit)
     end
     spellId = tostring(spellId)
-    local cached = self.cacheAura[unit][spellId]
+    local cached = self.cache_aura[unit][spellId]
     if cached then
         return cached[1], cached[2]
     end

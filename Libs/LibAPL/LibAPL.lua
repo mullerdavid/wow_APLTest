@@ -4,6 +4,7 @@ local LIB_VERSION_MAJOR, LIB_VERSION_MINOR = "LibAPL-1.0", 1
 
 ---@class LibAPL-1.0
 ---@field apl table
+---@field prepull? table
 ---@field sequences table<string, Sequence>
 ---@field sequence_stack table<string>
 ---@field timeout number
@@ -33,9 +34,6 @@ Actions:
 
 --[[
 TODO:
-Sequence related stuff
-    Generic Sequence store (k/v pairs), stack based tracker
-    https://github.com/search?q=repo%3Awowsims%2Fcata+%22%5C%22sequence%5C%22%22&type=code
 Prepull
 wowsim extension - external functions/variables from outside, preprocess for const that starts with "external:" for interoparability
 aura/dot source?
@@ -828,6 +826,7 @@ function LibAPL:New(apltable, timeout)
     end
     local o = {
         apl = apltable.priorityList,
+        prepull = apltable.prepullActions,
         sequences = {},
         sequence_stack = {},
         timeout = timeout or 15
@@ -903,6 +902,7 @@ local function HandleAction(self, action)
         return true, "sequence"
     elseif action.castSpell then
         local vals = action.castSpell
+        -- TODO: "otherId":"OtherActionPotion"
         return true, "castSpell", vals.spellId.spellId
     else
         Logger.Warning("unknown action " + ExtractFirstKey(action))
@@ -910,6 +910,7 @@ local function HandleAction(self, action)
     end
 end
 
+---@param self LibAPL-1.0
 local function HasStrictSequenceActive(self)
     for i = #self.sequence_stack, 1, -1 do
         local seq = self.sequences[self.sequence_stack[i]]
@@ -925,7 +926,49 @@ local function HasStrictSequenceActive(self)
     return false
 end
 
+local function sec_to_number(str)
+    if string.sub(str, -1) == "s" then
+        str = string.sub(str, 1, -2)
+    end
+    return tonumber(str)
+end
+
+---@param self LibAPL-1.0
+function LibAPL:GetPrePullActions(prepull_left)
+    Debug.DebugClear()
+    Debug.DebugLev(0, -1*prepull_left)
+    local ret = {}
+    -- assuming ordered prepull list
+    for i = 1, #self.prepull do
+        local item = self.prepull[i]
+        if item.doAtValue and item.doAtValue.const and item.doAtValue.const.val then
+            local do_at = -1* sec_to_number(item.doAtValue.const.val)
+            local left = prepull_left - do_at
+            if 0 < left and left < 3 then
+                local action = item.action
+                -- TODO: HandleAction()
+                if action.activateAura then
+                    Debug.DebugLev(1, "activateAura", action.activateAura.auraId.spellId)
+                elseif action.castSpell then
+                    Debug.DebugLev(1, "castSpell", action.castSpell.spellId.spellId or action.castSpell.spellId.otherId)
+                end
+            end
+        end
+    end
+    if false then
+        ret[#ret+1] = "prepull"
+        ret = {"prepullCastSpell", "spellId", "seconds_left", "repeat..."}
+    end
+    return unpack(ret)
+end
+
 function LibAPL:Run()
+    if self.prepull then
+        local prepull_left = LibAPLHelper.Global.PrePullLeft()
+        if 0 < prepull_left then
+            return self:GetPrePullActions(prepull_left)
+        end
+    end
     if HasStrictSequenceActive(self) then
         return "strictSequence"
     end

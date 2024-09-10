@@ -4,6 +4,10 @@ T.APL = T.APL or {}
 
 T.APL.Rogue_Combat = {
   type = "TypeAPL",
+  prepullActions = {
+    {action={castSpell={spellId={spellId=57934}}},doAtValue={const={val="-1s"}}},
+    {action={castSpell={spellId={otherId="OtherActionPotion"}}},doAtValue={const={val="-1s"}}}
+  },
   priorityList = { {
     action = {
       autocastOtherCooldowns = { }
