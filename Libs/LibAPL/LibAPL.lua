@@ -5,6 +5,7 @@ local LIB_VERSION_MAJOR, LIB_VERSION_MINOR = "LibAPL-1.0", 1
 ---@class LibAPL-1.0
 ---@field apl table
 ---@field prepull? table
+---@field external? table
 ---@field sequences table<string, Sequence>
 ---@field sequence_stack table<string>
 ---@field timeout number
@@ -19,23 +20,21 @@ local LibAPLHelper = LibStub:GetLibrary("LibAPLHelper-1.0")
 
 --[[
 Actions:
-    CastSpell (CastFriendlySpell)
-    StrictSequence
-    Sequence (if has no name, generate random uuid and assign it on tree)
-    ResetSequence
-    ChannelSpell
-    ActivateAura
-    CancelAura
-    Multidot
-    MultiShield
-    WaitUntil ???
-    AutocastOtherCooldowns ???
+    castSpell (castFriendlySpell)
+    strictSequence
+    sequence
+    resetSequence
+    channelSpell
+    activateAura
+    cancelAura
+    multidot
+    multiShield
+    waitUntil ???
+    autocastOtherCooldowns is silently eaten
 --]]
 
 --[[
 TODO:
-Use WowSim Action structures
-Prepull
 wowsim extension - external functions/variables from outside, preprocess for const that starts with "external:" for interoparability
 aura/dot source?
 Parameter to auto advance sequences?
@@ -65,13 +64,13 @@ local Debug = {}
 local Logger = {}
 
 function Logger.Warning(...)
-	print("\124cFFFFFF00[APL]", ..., "\124r")
+	print("\124cFFFFFF00[APL]", table.concat({...}, " "), "\124r")
 end
 
 local FuncsUnknown = {}
 function Logger.Unknown(func)
     if not FuncsUnknown[func] then
-        Logger.Warning(func, "is not unknown!")
+        Logger.Warning(func, "is not known!")
         FuncsUnknown[func] = true
     end
 end
@@ -179,11 +178,13 @@ end
 
 ---@class APLInterpreter
 ---@field helper LibAPLHelper-1.0
+---@field external_functions table
 local APLInterpreter = {}
 
-function APLInterpreter:New()
+function APLInterpreter:New(external)
     local o = {
         helper = LibAPLHelper:New(),
+        external_functions = external,
     }
     setmetatable(o, self)
     self.__index = self
@@ -199,6 +200,16 @@ function APLInterpreter:EvalCondition(level, condition)
             return nil
         end
     end
+end
+
+function APLInterpreter:external(level, val)
+    if self.external_functions and self.external_functions[val] then
+        local ret = self.external_functions[val]()
+        Debug.DebugLev(level+1, "external", val.."()", "=", ret)
+        return ret
+    end
+    Logger.Unknown("External "..val)
+    return false
 end
 
 APLInterpreter["and"] = function(self, level, vals)
@@ -268,7 +279,7 @@ function APLInterpreter:cmp(level, vals)
         Debug.DebugLev(level+1, "result", ret)
         return ret
     else
-        Logger.Unknown("Cmparison "..op)
+        Logger.Unknown("Comparison "..op)
         return nil
     end
 end
@@ -347,9 +358,15 @@ function APLInterpreter:OpDiv(level, lhs, rhs)
     return elhs / erhs
 end
 
+-- Also handling external functions in the form of external:<name> for compatibility
 function APLInterpreter:const(level, vals)
     local ret = vals.val
-    Debug.DebugLev(level, "const", "=", ret)
+    local external = string.match(vals.val, "^external:(.*)")
+    if external then
+        ret = self:external(level+1, external)
+    else
+        Debug.DebugLev(level, "const", "=", ret)
+    end
     return ret
 end
 
@@ -821,13 +838,14 @@ end
 ---@param apltable table
 ---@param timeout? number
 ---@return LibAPL-1.0
-function LibAPL:New(apltable, timeout)
+function LibAPL:New(apltable, timeout, external)
     if apltable.type ~= "TypeAPL" then
         error("invalid apl")
     end
     local o = {
         apl = apltable.priorityList,
         prepull = apltable.prepullActions,
+        external = external,
         sequences = {},
         sequence_stack = {},
         timeout = timeout or 15
@@ -1007,7 +1025,7 @@ end
 
 ---@return table?, ...
 function LibAPL:Interpret()
-    local interpreter = APLInterpreter:New()
+    local interpreter = APLInterpreter:New(self.external)
     for _,val in ipairs(self.apl) do
         local act = val.action
         if not val.hide then

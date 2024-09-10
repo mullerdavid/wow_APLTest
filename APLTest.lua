@@ -36,24 +36,41 @@ local function Init()
 	f.texture:SetAllPoints()
 	f:Show()
 
-	local runner = LAPL:New(T.APL.Rogue_Combat)
+	local externals = {
+		["somefunc"] = function() return false end,
+		["otherfunc"] = function() return 3.333 end
+	}
+	local runner = LAPL:New(T.APL.Rogue_Combat, nil, externals)
+
+	L.DrawSpell = function(self, spellId)
+		if spellId == "OtherActionPotion" then
+			spellId = 79633 -- TODO: configure?
+		end
+		local spellName, _, spellIcon = GetSpellInfo(spellId)
+		f.texture:Show()
+		f.texture:SetTexture(spellIcon)
+		f.text:SetText(spellName)
+	end
 	
-	L.DrawAction = function(self, action)
-		DevTools_Dump(action)
-		if action.castSpell then
-			local spellId = action.castSpell.spellId.spellId
-			local spellName, _, spellIcon = GetSpellInfo(spellId)
-			f.texture:Show()
-			f.texture:SetTexture(spellIcon)
-			f.text:SetText(spellName)
-		elseif action.strictSequence or action.sequence then
-			L:DrawAction(runner:SequenceNext())
-		else
-			if action ~= nil then
-				print("Unknown Action:", ExtractFirstKey(action))
+	L.DrawAction = function(self, ...)
+		for _,action in ipairs({...}) do
+			if action then
+				if action.castSpell then
+					local spellId = action.castSpell.spellId.spellId or action.castSpell.spellId.otherId
+					L:DrawSpell(spellId)
+				elseif action.strictSequence or action.sequence then
+					L:DrawAction(runner:SequenceNext())
+				elseif action.prepull then
+					L:DrawAction(action.prepull.action) -- TODO: render multiple actions
+				else
+					if action ~= nil then
+						local key = ExtractFirstKey(action)
+						print("Unknown Action:", key)
+						f.text:SetText(key)
+					end
+					f.texture:Hide()
+				end
 			end
-			f.texture:Hide()
-			f.text:SetText(action)
 		end
 	end
 
@@ -63,8 +80,7 @@ local function Init()
 		if timeElapsed > 0.1 then
 			timeElapsed = 0
 			if UnitExists("target") then
-				local action = runner:Run()
-				L:DrawAction(action)
+				L:DrawAction(runner:Run())
 			else
 				f.texture:Hide()
 				f.text:SetText("")
