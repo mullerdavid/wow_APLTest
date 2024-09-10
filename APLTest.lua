@@ -14,6 +14,13 @@ local function ProcessCommand(msg)
 	end
 end
 
+local function ExtractFirstKey(tab)
+    for k,_ in pairs(tab) do
+        return tostring(k)
+    end
+    return "<empty>"
+end
+
 local function Init()
 	print(ADDON.." Init()")
 
@@ -31,16 +38,20 @@ local function Init()
 
 	local runner = LAPL:New(T.APL.Rogue_Combat)
 	
-	L.DrawAction = function(self, action, params)
-		if action == "castSpell" then
-			local spellId = params
+	L.DrawAction = function(self, action)
+		DevTools_Dump(action)
+		if action.castSpell then
+			local spellId = action.castSpell.spellId.spellId
 			local spellName, _, spellIcon = GetSpellInfo(spellId)
 			f.texture:Show()
 			f.texture:SetTexture(spellIcon)
 			f.text:SetText(spellName)
-		elseif action == "strictSequence" or action == "sequence" then
+		elseif action.strictSequence or action.sequence then
 			L:DrawAction(runner:SequenceNext())
 		else
+			if action ~= nil then
+				print("Unknown Action:", ExtractFirstKey(action))
+			end
 			f.texture:Hide()
 			f.text:SetText(action)
 		end
@@ -52,8 +63,8 @@ local function Init()
 		if timeElapsed > 0.1 then
 			timeElapsed = 0
 			if UnitExists("target") then
-				local action, params = runner:Run()
-				L:DrawAction(action, params)
+				local action = runner:Run()
+				L:DrawAction(action)
 			else
 				f.texture:Hide()
 				f.text:SetText("")

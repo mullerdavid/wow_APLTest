@@ -34,6 +34,7 @@ Actions:
 
 --[[
 TODO:
+Use WowSim Action structures
 Prepull
 wowsim extension - external functions/variables from outside, preprocess for const that starts with "external:" for interoparability
 aura/dot source?
@@ -848,13 +849,6 @@ function LibAPL:DetachDebugger()
     Debug.__dump = nil
 end
 
-local function ExtractFirstKey(tab)
-    for k,_ in pairs(tab) do
-        return tostring(k)
-    end
-    return "<empty>"
-end
-
 local key_counter = 0
 local function SequenceKey()
     key_counter = key_counter + 1
@@ -881,10 +875,10 @@ local function AddSequenceIfNotExists(self, action)
     end
 end
 
----Returns if we handle the action and the action converted from WoWSimAPL to LibAPL
+---Returns if we handle the action and if the action should be overriden
 ---@param self LibAPL-1.0
 ---@param action table
----@return boolean, string?, ...
+---@return boolean, table?
 local function HandleAction(self, action)
     if action.autocastOtherCooldowns then
         return false
@@ -893,19 +887,14 @@ local function HandleAction(self, action)
         if self.sequence_stack[#self.sequence_stack] ~= action.name then
             self.sequence_stack[#self.sequence_stack + 1] = action.name
         end
-        return true, "strictSequence"
+        return true, {strictSequence = {name = action.name}}
     elseif action.sequence then
         AddSequenceIfNotExists(self, action)
         if self.sequence_stack[#self.sequence_stack] ~= action.name then
             self.sequence_stack[#self.sequence_stack + 1] = action.name
         end
-        return true, "sequence"
-    elseif action.castSpell then
-        local vals = action.castSpell
-        -- TODO: "otherId":"OtherActionPotion"
-        return true, "castSpell", vals.spellId.spellId
+        return true, {sequence = {name = action.name}}
     else
-        Logger.Warning("unknown action " + ExtractFirstKey(action))
         return true
     end
 end
@@ -926,7 +915,7 @@ local function HasStrictSequenceActive(self)
     return false
 end
 
-local function sec_to_number(str)
+local function SecondsToNumber(str)
     if string.sub(str, -1) == "s" then
         str = string.sub(str, 1, -2)
     end
@@ -934,32 +923,33 @@ local function sec_to_number(str)
 end
 
 ---@param self LibAPL-1.0
+---@return table, ...
 function LibAPL:GetPrePullActions(prepull_left)
+    local max_seconds = 3
+    local actions = {}
     Debug.DebugClear()
     Debug.DebugLev(0, -1*prepull_left)
-    local ret = {}
     -- assuming ordered prepull list
     for i = 1, #self.prepull do
         local item = self.prepull[i]
         if item.doAtValue and item.doAtValue.const and item.doAtValue.const.val then
-            local do_at = -1* sec_to_number(item.doAtValue.const.val)
+            local do_at = -1* SecondsToNumber(item.doAtValue.const.val)
             local left = prepull_left - do_at
-            if 0 < left and left < 3 then
-                local action = item.action
-                -- TODO: HandleAction()
-                if action.activateAura then
-                    Debug.DebugLev(1, "activateAura", action.activateAura.auraId.spellId)
-                elseif action.castSpell then
-                    Debug.DebugLev(1, "castSpell", action.castSpell.spellId.spellId or action.castSpell.spellId.otherId)
+            if 0 < left and left < max_seconds then
+                local act = item.action
+                local handled, override = HandleAction(self, act)
+                if handled then
+                    actions[#actions+1] = {prepull={left=left, max=max_seconds, action=override or act}}
+                    if act.activateAura then
+                        Debug.DebugLev(1, "activateAura", act.activateAura.auraId.spellId)
+                    elseif act.castSpell then
+                        Debug.DebugLev(1, "castSpell", act.castSpell.spellId.spellId or act.castSpell.spellId.otherId)
+                    end
                 end
             end
         end
     end
-    if false then
-        ret[#ret+1] = "prepull"
-        ret = {"prepullCastSpell", "spellId", "seconds_left", "repeat..."}
-    end
-    return unpack(ret)
+    return unpack(actions)
 end
 
 function LibAPL:Run()
@@ -970,7 +960,8 @@ function LibAPL:Run()
         end
     end
     if HasStrictSequenceActive(self) then
-        return "strictSequence"
+        local name = self.sequence_stack[#self.sequence_stack]
+        return {strictSequence = {name = name}}
     end
     return self:Interpret()
 end
@@ -980,11 +971,10 @@ function LibAPL:SequenceNext()
         while true do
             local seq = self.sequences[self.sequence_stack[#self.sequence_stack]]
             local act = seq:Next()
-            local ret = {HandleAction(self, act)}
-            local handled = ret[1]
+            local handled, override = HandleAction(self, act)
             if handled then
-                if not act.strictSequence and not act.sequence then
-                    return select(2, unpack(ret))
+                if not override then
+                    return act
                 else
                     seq:Step()
                 end
@@ -1015,7 +1005,7 @@ function LibAPL:SequenceClearAll()
     self.sequence_stack = {}
 end
 
----@return string?, ...
+---@return table?, ...
 function LibAPL:Interpret()
     local interpreter = APLInterpreter:New()
     for _,val in ipairs(self.apl) do
@@ -1025,17 +1015,16 @@ function LibAPL:Interpret()
             Debug.Debug(interpreter.helper:GetCombatTime())
             local cond = act.condition == nil or interpreter:EvalCondition(-1, act.condition)
             if cond then
-                local ret = {HandleAction(self, act)}
-                local handled = ret[1]
+                local handled, override = HandleAction(self, act)
                 if handled then
-                    if Debug.__debug and ret[2] == "strictSequence" then
+                    if Debug.__debug and override and override.strictSequence then
                         local seq = self.sequences[self.sequence_stack[#self.sequence_stack]]
                         Debug.DebugLev(0, "Strict Sequence Mode")
                         for _,v in ipairs(seq.actions) do
                             Debug.DebugLev(1, v.castSpell.spellId.spellId)
                         end
                     end
-                    return select(2, unpack(ret))
+                    return override or act
                 end
             end
         end
