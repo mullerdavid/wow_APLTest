@@ -35,9 +35,8 @@ Actions:
 
 --[[
 TODO:
-wowsim extension - external functions/variables from outside, preprocess for const that starts with "external:" for interoparability
+implement missing methods
 aura/dot source?
-Parameter to auto advance sequences?
 
 caching compute heavy stuff
 
@@ -834,11 +833,13 @@ end
 
 --region LibAPL
 
----Creates new APL object, accepts WoWSimAPL like table and (strict sequence) timeout (default 15s)
----@param apltable table
----@param timeout? number
+---Creates new APL object, accepts WoWSimAPL like table, (strict sequence) timeout (default 15s), 
+---@param apltable table WoWSimAPL like table
+---@param timeout? number Strict sequence timeout (default 15s)
+---@param external? table External functions table
+---@param auto_step? boolean Automatically step through sequences based on the casts (maximum 5 concurrent runners!)
 ---@return LibAPL-1.0
-function LibAPL:New(apltable, timeout, external)
+function LibAPL:New(apltable, timeout, external, auto_step)
     if apltable.type ~= "TypeAPL" then
         error("invalid apl")
     end
@@ -852,6 +853,9 @@ function LibAPL:New(apltable, timeout, external)
     }
     setmetatable(o, self)
     self.__index = self
+    if auto_step then
+        LibAPLHelper.Global.RegisterStepper(o)
+    end
     return o
 end
 

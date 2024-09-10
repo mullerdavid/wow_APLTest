@@ -53,6 +53,24 @@ function LibAPLHelper.Global.PrePullLeft()
     return math.max(0, left)
 end
 
+local step_callbacks = {}
+
+function LibAPLHelper.Global.RegisterStepper(runner)
+    local max_objects = 5
+    while max_objects <= #step_callbacks do
+        table.remove(step_callbacks, 1)
+    end
+    step_callbacks[#step_callbacks+1] = runner
+end
+
+function LibAPLHelper.Global.SequenceStepper(spell_id)
+    local action = { castSpell = { spellId = { spellId = spell_id } } }
+    for i = 1, #step_callbacks do
+        step_callbacks[i]:SequenceStep(action)
+    end
+end
+
+
 --endregion
 
 --region Helper
@@ -200,7 +218,7 @@ function LibAPLHelper:CheckRange(unit, range, operator)
     end
 end
 
-local function HelperEventsFunction(self, event, arg1)
+local function HelperEventsFunction(self, event, arg1, _, arg3)
     -- Lightweight events only
 	if event == "PLAYER_REGEN_DISABLED" then
 		self.__last_combat_start = GetTime()
@@ -208,13 +226,17 @@ local function HelperEventsFunction(self, event, arg1)
 		self.__last_encounter = tonumber(arg1)
     elseif event == "ENCOUNTER_END" then
 		self.__last_encounter = nil
-	end
+    elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+        local spell_id = arg3
+        LibAPLHelper.Global.SequenceStepper(spell_id)
+    end
 end
 
 local HelperEventsFrame = CreateFrame("Frame")
 HelperEventsFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 HelperEventsFrame:RegisterEvent("ENCOUNTER_START")
 HelperEventsFrame:RegisterEvent("ENCOUNTER_END")
+HelperEventsFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 HelperEventsFrame:SetScript("OnEvent", HelperEventsFunction)
 
 function LibAPLHelper:GetCombatTime()

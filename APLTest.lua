@@ -40,7 +40,7 @@ local function Init()
 		["somefunc"] = function() return false end,
 		["otherfunc"] = function() return 3.333 end
 	}
-	local runner = LAPL:New(T.APL.Rogue_Combat, nil, externals)
+	local runner = LAPL:New(T.APL.Rogue_Combat, nil, externals, true)
 
 	L.DrawSpell = function(self, spellId)
 		if spellId == "OtherActionPotion" then
@@ -87,17 +87,6 @@ local function Init()
 			end
 		end
 	end
-
-	local function EventHandler(self, event, arg1, arg2, arg3)
-		if event == "UNIT_SPELLCAST_SUCCEEDED" then
-			local spell_id = arg3
-			local action = { castSpell = { spellId = { spellId = spell_id } } }
-			runner:SequenceStep(action)
-		end
-	end
-
-	f:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-	f:SetScript("OnEvent", EventHandler)
 
 
 	--DevTools_Dump(variable)
