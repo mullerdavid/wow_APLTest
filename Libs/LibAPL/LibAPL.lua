@@ -916,6 +916,11 @@ local function HandleAction(self, action)
             self.sequence_stack[#self.sequence_stack + 1] = action.name
         end
         return true, {sequence = {name = action.name}}
+    elseif action.resetsequence then
+        local name = action.resetsequence.sequenceName
+        self.sequences[name]:Reset()
+        -- maybe restart from start afterwards?
+        return false
     else
         return true
     end
