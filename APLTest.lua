@@ -157,8 +157,8 @@ local bundle = LibParse:JSONDecode([[
 {
 	"version": 1,
 	"pk": [171, 219, 11, 179, 118, 121, 211, 18, 151, 0, 15, 25, 75, 191, 17, 9, 66, 158, 201, 200, 190, 104, 206, 44, 240, 246, 141, 19, 0, 140, 119, 89],
-	"nonce": [128, 12, 14, 152, 182, 179, 90, 133, 7, 194, 118, 55, 170, 160, 69, 230, 188, 140, 227, 135, 64, 1, 174, 55, 143, 231, 170, 152, 20, 137, 8, 80],
-	"encrypted": "zPpnID52uJ6OSO4hys6tYAlH65EvhH1JNy05U3piux9D1JVP7DgIFJ3qv3EMh+d2LUsQ19Syo3NecUrC8qGyBoWdeBvtziU+njOxyoaodoZ4pZLMekS4/I4iszkLxCRGgDHuGsTD/IP1udDxDRvVll4neq5h3lnue/JROchLyRlR9JPQw/YfpZz6hb4T1v4d"
+	"nonce": [224, 234, 50, 10, 203, 243, 77, 113, 139, 53, 167, 187, 144, 16, 18, 184, 75, 49, 163, 14, 102, 105, 185, 33, 135, 243, 5, 24, 81, 236, 44, 126],
+	"encrypted": "LEcYBqSBDCKZQ1Z9f6f8uOYdoJ84ODQliHOvwKuD6tGYPLDJnC+GyWkVXa2pt7bxCMpIbHoJf5MUI34oGFwCirF5vj2rn4yJNAe/3Zr3PqDzW4IAJEpOf2sTLR6XB8wC2F4kX/pxNu4YEVK0K/uQoFNDTrthmYLSv6nui2myt49OriT39ebXKeX/2CQBSl4p"
 }
 ]])
 
