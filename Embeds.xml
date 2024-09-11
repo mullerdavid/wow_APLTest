@@ -3,6 +3,7 @@
 	<Include file="Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml"/>
 	<Include file="Libs\LibParse\Load.xml"/>
 	<Include file="Libs\LibCrypto\LibCrypto-1.0.xml"/>
+	<Include file="Libs\LibDRM\LibDRM-1.0.xml"/>
 	<Script file="Libs\LibRangeCheck-3.0\LibRangeCheck-3.0.lua"/>
 	<Include file="Libs\LibAPL\LibAPL-1.0.xml"/>
 </Ui>

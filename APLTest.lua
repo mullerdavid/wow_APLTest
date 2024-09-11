@@ -154,26 +154,18 @@ local pubkeys = {
 
 
 
-local LibCrypto = LibStub("LibCrypto-1.0")
-local LibParse = LibStub("LibParse")
+local LibDRM = LibStub("LibDRM-1.0")
 
-local bundle = LibParse:JSONDecode([[
+local json = [[
 {
 	"version": 1,
-	"pk": "Deathbaron",
+	"pk": "Test",
 	"nonce": [232, 239, 175, 242, 227, 111, 131, 202, 146, 76, 63, 10, 98, 146, 210, 138, 15, 129, 243, 107, 119, 85, 161, 224, 125, 190, 132, 102, 33, 15, 118, 123],
 	"encrypted": "uiDJfcixiHXQA4doQ+18taAWC6bWMW7XQdrfl2J6S1pT5wARE/+c8MQCbbaR5Rij5E9oXr3CtrxLcLWPlmR/zsMVPPaWKQn3rE3IPiRfPiKsIZFhWNTgcdpKYy+SpFw9uKrN+qpMh5Gii24/GU05SldnjKmoI06Z3xpHD3YUwtkHcFY3R1oRxJw4BxPWqtHk"
 }
-]])
+]]
 
-local pk = LibCrypto.table_to_zero_indexed((type(bundle.pk) == "table") and bundle.pk or pubkeys[bundle.pk])
-local esk = LibCrypto.table_to_zero_indexed(bundle.nonce)
-local cyphertext = LibCrypto.Base64.decode(bundle.encrypted)
-local key = LibCrypto.X25519.get_shared_key(esk, pk)
-local plaintext = LibCrypto.AES.ECB_256(LibCrypto.AES.decrypt, key, cyphertext)
-local dict = LibParse:JSONDecode(plaintext)
-
-DevTools_Dump(dict)
+DevTools_Dump(LibDRM.Load(json))
 
 
 --[[
