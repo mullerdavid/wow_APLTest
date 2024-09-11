@@ -12,7 +12,9 @@
         "NO",
         "OTHER",
         "FROM",
-        "USE"
+        "USE",
+        "APLImport",
+        "APLTestSavedVariablesPerCharacter"
     ],
     "Lua.runtime.version": "Lua 5.1",
     "Lua.runtime.builtin": {

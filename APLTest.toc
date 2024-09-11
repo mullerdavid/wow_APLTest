@@ -4,7 +4,7 @@
 ## Version: 0.1
 ## Dependencies: 
 ## Notes: APLTest
-## SavedVariables: 
+## SavedVariablesPerCharacter: APLTestSavedVariablesPerCharacter
 
 Embeds.xml
 
