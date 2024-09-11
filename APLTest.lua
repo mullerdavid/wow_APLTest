@@ -1,6 +1,7 @@
 local ADDON, T = ...
 local L = {}
 
+local LibParse = LibStub("LibParse")
 local LAPL = LibStub("LibAPL-1.0")
 
 _G["SLASH_"..ADDON.."1"] = "/apl"
@@ -40,7 +41,8 @@ local function Init()
 		["somefunc"] = function() return false end,
 		["otherfunc"] = function() return 3.333 end
 	}
-	local runner = LAPL:New(T.APL.Rogue_Combat, nil, externals, true)
+	local apl_data = LibParse:JSONDecode(T.APL.Rogue_Combat)
+	local runner = LAPL:New(apl_data, nil, externals, true)
 
 	L.DrawSpell = function(self, spellId)
 		if spellId == "OtherActionPotion" then
