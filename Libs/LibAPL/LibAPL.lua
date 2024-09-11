@@ -34,7 +34,8 @@ Actions:
     
     https://github.com/wowsims/cata/blob/12776383d4ec556e69b1870fd0587accfb794bf8/proto/apl.proto
     
-    JSON.stringify(JSON.parse(localStorage.getItem("__cata_assassination_rogue__currentSettings__")).player.rotation)
+    JSON.stringify(JSON.parse(localStorage.getItem("__cata_combat_rogue__currentSettings__")).player.rotation)
+    JSON.stringify(JSON.parse(localStorage.getItem("__cata_combat_rogue__savedRotation__")).rotation_name.rotation)
 --]]
 
 --region Libs, constants
@@ -591,10 +592,10 @@ function APLInterpreter:auraIcdIsReadyWithReactionTime(level, vals)
     Debug.DebugLev(level, "auraIcdIsReadyWithReactionTime", "=", ret)
 end
 
-function APLInterpreter:spellTimeToready(level, vals)
+function APLInterpreter:spellTimeToReady(level, vals)
     local spellId = vals.spellId.spellId
     local ret = self.helper:GetSpellCooldown(spellId)
-    Debug.DebugLev(level, "spellTimeToready", spellId, "=", ret)
+    Debug.DebugLev(level, "spellTimeToReady", spellId, "=", ret)
     return ret
 end
 

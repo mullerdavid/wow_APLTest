@@ -4,6 +4,7 @@ LibAPL
 	implement missing methods
 	aura/dot source? Datastore?
 	caching compute heavy stuff
+	precompiled version instead interpreted if speed if issue
 ]]--
 
 
@@ -176,7 +177,9 @@ local function Init()
 					local spellId = action.castSpell.spellId.spellId or action.castSpell.spellId.otherId
 					L:DrawSpell(spellId)
 				elseif action.strictSequence or action.sequence then
-					L:DrawAction(runner and runner:SequenceNext())
+					if runner then
+						L:DrawAction(runner:SequenceNext())
+					end
 				elseif action.prepull then
 					L:DrawAction(action.prepull.action) -- TODO: render multiple actions
 				else
@@ -196,8 +199,8 @@ local function Init()
 		timeElapsed = timeElapsed + elapsed
 		if timeElapsed > 0.1 then
 			timeElapsed = 0
-			if UnitExists("target") then
-				L:DrawAction(runner and runner:Run())
+			if UnitExists("target") and runner then
+				L:DrawAction(runner:Run())
 			else
 				f.texture:Hide()
 				f.text:SetText("")
