@@ -14,7 +14,7 @@ local LibParse = LibStub("LibParse")
 local LibDRM = LibStub("LibDRM-1.0")
 local LAPL = LibStub("LibAPL-1.0")
 
-APLTestSavedVariablesPerCharacterPerCharacter = APLTestSavedVariablesPerCharacter or {}
+APLTestSavedVariablesPerCharacter = APLTestSavedVariablesPerCharacter or {}
 
 _G["SLASH_"..ADDON.."1"] = "/apl"
 
