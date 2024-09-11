@@ -10,7 +10,7 @@ LibAPL
 local ADDON, T = ...
 local L = {}
 
-local LibParse = LibStub("LibParse")
+local LibCrypto = LibStub("LibCrypto-1.0")
 local LibDRM = LibStub("LibDRM-1.0")
 local LAPL = LibStub("LibAPL-1.0")
 
@@ -132,7 +132,7 @@ local function Init()
 		end
 		local apl_data = nil
 		pcall(function ()
-			apl_data = LibParse:JSONDecode(str)
+			apl_data = LibCrypto.JSON.decode(str)
 		end)
 		if not apl_data then
 			print("Invalid JSON")
@@ -142,12 +142,19 @@ local function Init()
 			apl_data = LibDRM.Load(apl_data)
 		end
 		
-
 		local externals = {
 			["somefunc"] = function() return false end,
 			["otherfunc"] = function() return 3.333 end
 		}
-		runner = LAPL:New(apl_data, nil, externals, true)
+
+		local status, err = pcall(function ()
+			runner = LAPL:New(apl_data, nil, externals, true)
+		end)
+		if not status then
+			print(err)
+			return false
+		end
+		
 
 		return true
 	end
@@ -229,4 +236,3 @@ end
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", OnEvent)
-

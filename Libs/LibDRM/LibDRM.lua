@@ -13,7 +13,6 @@ if not LibDRM then
 end
 
 local LibCrypto = LibStub("LibCrypto-1.0")
-local LibParse = LibStub("LibParse")
 
 --#endregion
 
@@ -48,13 +47,13 @@ function LibDRM.Load(json_or_table, identifier)
     end
     local ret
     local status, err = pcall(function ()
-        local bundle = (type(json_or_table) == "table") and json_or_table or LibParse:JSONDecode(json_or_table)
+        local bundle = (type(json_or_table) == "table") and json_or_table or LibCrypto.JSON.decode(json_or_table)
         local pk = LibCrypto.table_to_zero_indexed((type(bundle.pk) == "table") and bundle.pk or PUBLIC_KEYS[bundle.pk])
         local esk = LibCrypto.table_to_zero_indexed(bundle.nonce)
         local cyphertext = LibCrypto.Base64.decode(bundle.encrypted)
         local key = LibCrypto.X25519.get_shared_key(esk, pk)
         local plaintext = LibCrypto.AES.ECB_256(LibCrypto.AES.decrypt, key, cyphertext)
-        local dict = LibParse:JSONDecode(plaintext)
+        local dict = LibCrypto.JSON.decode(plaintext)
         local valid, reason = CheckValidity(dict.license)
         if valid then
             ret = dict.data
