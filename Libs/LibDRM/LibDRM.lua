@@ -30,7 +30,15 @@ local PUBLIC_KEYS = {
 local CACHE = {}
 
 local function CheckValidity(license)
-    -- TODO: check validity
+    if license.character and license.character ~= UnitName("player") then
+        return false, "Character mismatch"
+    end
+    if license.realm and license.realm ~= GetRealmName() then
+        return false, "Realm mismatch"
+    end
+    if license.expires and license.expires < GetServerTime() then
+        return false, "License expired"
+    end
     return true
 end
 

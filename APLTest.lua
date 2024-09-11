@@ -155,15 +155,15 @@ import json
 import datetime
 from LibDRM import generate_bundle
 sk = bytes.fromhex("65916d34c51d45a839d8bce84f0db253aeb4e46a73f6a2ff93fcc31bad4c8b47")
-print(json.dumps( generate_bundle(sk, {"some": "data"}, character="Deathbaron", realm="Golemagg", expires=datetime.datetime.now().timestamp(), key_owner="Test") ))
+print(json.dumps( generate_bundle(sk, {"some": "data"}, character="Deathbaron", realm="Golemagg", expires=datetime.datetime(2024, 10, 10).timestamp(), key_owner="Test") ))
 ]]--
 
 local json = [[
 {
 	"version": 1,
 	"pk": "Test",
-	"nonce": [224, 202, 249, 151, 136, 215, 79, 251, 117, 81, 208, 255, 156, 14, 214, 135, 213, 32, 64, 205, 133, 3, 134, 84, 6, 120, 204, 87, 156, 197, 160, 68],
-	"encrypted": "mMC77mA7jsUzxPSQGdUPN5l7AjR0TQWY/KKRnk/3fD9Zp9C2D8WTRqbRe86XiaKgNyd5HLVS8k+YwM6lGt9wyYr5Lx8YP24KDvC005kR6kN6PogdxFKjpcTZiAecZ50UrPfdSbsRLBXSdAnQFVGLjv+SAbqcyxNQRYmR5IUfdSQ="
+	"nonce": [112, 255, 97, 139, 45, 15, 145, 38, 96, 191, 101, 155, 30, 220, 241, 252, 89, 204, 99, 67, 108, 151, 62, 88, 75, 50, 225, 3, 20, 188, 4, 103],
+	"encrypted": "/3MEe6k+s3eY2sQddNHMGvtFRZVM/sFg3ccChUpgrRCP0xnUHQ/xmtcPcDGWeCDWsuJOHEYEtbIVRHhRV4XSQ43oRFhHMpSG4qT+H3C8YNyS/UleHT5oyMxqXqWS1A7KitFdj+XS4KPs0UVy1Au6DfGUW+VyMndQqOMipaRHkrc="
 }
 ]]
 
