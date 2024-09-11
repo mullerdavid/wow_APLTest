@@ -148,12 +148,6 @@ if true then
 	LAPL:AttachDebugger(DebugClear, Debug, DumpVar)
 end
 
-local pubkeys = {
-	["Deathbaron"] = {171, 219, 11, 179, 118, 121, 211, 18, 151, 0, 15, 25, 75, 191, 17, 9, 66, 158, 201, 200, 190, 104, 206, 44, 240, 246, 141, 19, 0, 140, 119, 89}
-}
-
-
-
 local LibDRM = LibStub("LibDRM-1.0")
 
 local json = [[
@@ -166,26 +160,3 @@ local json = [[
 ]]
 
 DevTools_Dump(LibDRM.Load(json))
-
-
---[[
-
-
-keep sk, send pk + esk to receiver, discard epk
-use the 32 bytes shared key as aes key to encrypt/decrypt
-{
-	version: 1,
-	pk: [0x00, 0xff, ...], -- pk (TODO: should bake into DRM? and use only a key?)
-	nonce: [0x00, 0xff, ...], -- esk
-	encrypted: "Base64Data/==" -- json data from below in b64
-}
-
-{
-	license: {
-		character: "name", -- licensed character, nil for any
-		realm: "realm", -- licensed realm, nil for any
-		valid: 1726057531, -- validity timestamp, nil for any
-	},
-	data: {any: 1}
-}
-]]--

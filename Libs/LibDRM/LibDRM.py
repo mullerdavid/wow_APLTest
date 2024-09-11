@@ -1,9 +1,14 @@
+#!/bin/env python3 
+# pip install cryptography
+
+import sys
+import json
+import base64
+
 from typing import Optional
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
-from base64 import b64encode
-from json import dumps
 
 def print_hex(lst: list):
     print(",".join(["%02x" % b for b in lst]))
@@ -28,7 +33,7 @@ def generate_bundle(sk_bytes: bytes, data: dict, character: Optional[str]=None, 
         "data": data
     }
 
-    lic_str = dumps(lic)
+    lic_str = json.dumps(lic)
     lic_pad = lic_str.ljust(len(lic_str) + (16 - len(lic_str) % 16))
     lic_enc = encryptor.update(lic_pad.encode("latin1")) + encryptor.finalize()
 
@@ -36,17 +41,30 @@ def generate_bundle(sk_bytes: bytes, data: dict, character: Optional[str]=None, 
         "version": 1,
         "pk": key_owner if key_owner else convert_bytes_to_array(pk.public_bytes_raw()),
         "nonce": convert_bytes_to_array(esk.private_bytes_raw()),
-        "encrypted": b64encode(lic_enc).decode("latin1")
+        "encrypted": base64.b64encode(lic_enc).decode("latin1")
     }  
 
     return bundle 
 
 def usage():
-    print("Usage: ")
+    executable = sys.argv[0]
+    print(f"Usage: {executable} <secret_key_hex> [input_json]")
+    print(f"  secret_key_hex: 32 bytes random key in hex")
+    print(f"  input_json: optional json string to convert, reading json from stdin if not specified")
+    print(f"""Example: {executable} 65916d34c51d45a839d8bce84f0db253aeb4e46a73f6a2ff93fcc31bad4c8b47 '{{"json": "data"}}'""")
 
 def main():
-    b = generate_bundle(bytes.fromhex("65916d34c51d45a839d8bce84f0db253aeb4e46a73f6a2ff93fcc31bad4c8b47"), {"alma": "korte"})
-    print(dumps(b))
+    if (len(sys.argv) < 2):
+        usage()
+    else:
+        sk = bytes.fromhex(sys.argv[1])
+        data = None
+        if (2 < len(sys.argv)):
+            data = json.loads(sys.argv[2])
+        else:
+            data = json.load(sys.stdin)
+        b = generate_bundle(sk, data)
+        print(json.dumps(b))
 
 if __name__ == "__main__":
     main()
