@@ -57,7 +57,7 @@ function LibDRM.Load(json_or_table, identifier)
         local dict = LibParse:JSONDecode(plaintext)
         local valid, reason = CheckValidity(dict.license)
         if valid then
-            ret = dict
+            ret = dict.data
         else
             print("License is invalid:", reason)
         end
