@@ -206,7 +206,7 @@ if true then
         return shared;
     end
 
-    _G.X25519 = {
+    LibCrypto.X25519 = {
         generate_keypair = generate_keypair,
         get_shared_key = get_shared_key,
     }
