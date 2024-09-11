@@ -148,6 +148,10 @@ if true then
 	LAPL:AttachDebugger(DebugClear, Debug, DumpVar)
 end
 
+local pubkeys = {
+	["Deathbaron"] = {171, 219, 11, 179, 118, 121, 211, 18, 151, 0, 15, 25, 75, 191, 17, 9, 66, 158, 201, 200, 190, 104, 206, 44, 240, 246, 141, 19, 0, 140, 119, 89}
+}
+
 
 
 local LibCrypto = LibStub("LibCrypto-1.0")
@@ -156,13 +160,13 @@ local LibParse = LibStub("LibParse")
 local bundle = LibParse:JSONDecode([[
 {
 	"version": 1,
-	"pk": [171, 219, 11, 179, 118, 121, 211, 18, 151, 0, 15, 25, 75, 191, 17, 9, 66, 158, 201, 200, 190, 104, 206, 44, 240, 246, 141, 19, 0, 140, 119, 89],
-	"nonce": [224, 234, 50, 10, 203, 243, 77, 113, 139, 53, 167, 187, 144, 16, 18, 184, 75, 49, 163, 14, 102, 105, 185, 33, 135, 243, 5, 24, 81, 236, 44, 126],
-	"encrypted": "LEcYBqSBDCKZQ1Z9f6f8uOYdoJ84ODQliHOvwKuD6tGYPLDJnC+GyWkVXa2pt7bxCMpIbHoJf5MUI34oGFwCirF5vj2rn4yJNAe/3Zr3PqDzW4IAJEpOf2sTLR6XB8wC2F4kX/pxNu4YEVK0K/uQoFNDTrthmYLSv6nui2myt49OriT39ebXKeX/2CQBSl4p"
+	"pk": "Deathbaron",
+	"nonce": [232, 239, 175, 242, 227, 111, 131, 202, 146, 76, 63, 10, 98, 146, 210, 138, 15, 129, 243, 107, 119, 85, 161, 224, 125, 190, 132, 102, 33, 15, 118, 123],
+	"encrypted": "uiDJfcixiHXQA4doQ+18taAWC6bWMW7XQdrfl2J6S1pT5wARE/+c8MQCbbaR5Rij5E9oXr3CtrxLcLWPlmR/zsMVPPaWKQn3rE3IPiRfPiKsIZFhWNTgcdpKYy+SpFw9uKrN+qpMh5Gii24/GU05SldnjKmoI06Z3xpHD3YUwtkHcFY3R1oRxJw4BxPWqtHk"
 }
 ]])
 
-local pk = LibCrypto.table_to_zero_indexed(bundle.pk)
+local pk = LibCrypto.table_to_zero_indexed((type(bundle.pk) == "table") and bundle.pk or pubkeys[bundle.pk])
 local esk = LibCrypto.table_to_zero_indexed(bundle.nonce)
 local cyphertext = LibCrypto.Base64.decode(bundle.encrypted)
 local key = LibCrypto.X25519.get_shared_key(esk, pk)

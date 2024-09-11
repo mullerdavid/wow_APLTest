@@ -12,6 +12,7 @@ def convert_bytes_to_array(inp):
 
 sk = X25519PrivateKey.from_private_bytes(bytes([101, 145, 109, 52, 197, 29, 69, 168, 57, 216, 188, 232, 79, 13, 178, 83, 174, 180, 228, 106, 115, 246, 162, 255, 147, 252, 195, 27, 173, 76, 139, 71])) # TODO: test key!
 pk = sk.public_key()
+pk_owner = "Deathbaron"
 
 esk = X25519PrivateKey.generate()
 epk = esk.public_key()
@@ -38,7 +39,7 @@ lic_enc = encryptor.update(lic_pad.encode("latin1")) + encryptor.finalize()
 
 bundle = {
 	"version": 1,
-	"pk": convert_bytes_to_array(pk.public_bytes_raw()),
+	"pk": pk_owner,
 	"nonce": convert_bytes_to_array(esk.private_bytes_raw()),
 	"encrypted": b64encode(lic_enc).decode("latin1")
 }   
