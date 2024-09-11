@@ -16,7 +16,7 @@ def print_hex(lst: list):
 def convert_bytes_to_array(inp: bytes) -> list:
     return [int(b) for b in inp]
     
-def generate_bundle(sk_bytes: bytes, data: dict, character: Optional[str]=None, realm: Optional[str]=None, expires: Optional[str]=None, key_owner: Optional[str]=None) -> dict:
+def generate_bundle(sk_bytes: bytes, data: dict, character: Optional[str]=None, realm: Optional[str]=None, expires: Optional[float]=None, key_owner: Optional[str]=None) -> dict:
     sk = X25519PrivateKey.from_private_bytes(sk_bytes)
     pk = sk.public_key()
     esk = X25519PrivateKey.generate()

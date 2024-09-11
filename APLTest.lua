@@ -150,12 +150,20 @@ end
 
 local LibDRM = LibStub("LibDRM-1.0")
 
+--[[
+import json
+import datetime
+from LibDRM import generate_bundle
+sk = bytes.fromhex("65916d34c51d45a839d8bce84f0db253aeb4e46a73f6a2ff93fcc31bad4c8b47")
+print(json.dumps( generate_bundle(sk, {"some": "data"}, character="Deathbaron", realm="Golemagg", expires=datetime.datetime.now().timestamp(), key_owner="Test") ))
+]]--
+
 local json = [[
 {
 	"version": 1,
 	"pk": "Test",
-	"nonce": [232, 239, 175, 242, 227, 111, 131, 202, 146, 76, 63, 10, 98, 146, 210, 138, 15, 129, 243, 107, 119, 85, 161, 224, 125, 190, 132, 102, 33, 15, 118, 123],
-	"encrypted": "uiDJfcixiHXQA4doQ+18taAWC6bWMW7XQdrfl2J6S1pT5wARE/+c8MQCbbaR5Rij5E9oXr3CtrxLcLWPlmR/zsMVPPaWKQn3rE3IPiRfPiKsIZFhWNTgcdpKYy+SpFw9uKrN+qpMh5Gii24/GU05SldnjKmoI06Z3xpHD3YUwtkHcFY3R1oRxJw4BxPWqtHk"
+	"nonce": [224, 202, 249, 151, 136, 215, 79, 251, 117, 81, 208, 255, 156, 14, 214, 135, 213, 32, 64, 205, 133, 3, 134, 84, 6, 120, 204, 87, 156, 197, 160, 68],
+	"encrypted": "mMC77mA7jsUzxPSQGdUPN5l7AjR0TQWY/KKRnk/3fD9Zp9C2D8WTRqbRe86XiaKgNyd5HLVS8k+YwM6lGt9wyYr5Lx8YP24KDvC005kR6kN6PogdxFKjpcTZiAecZ50UrPfdSbsRLBXSdAnQFVGLjv+SAbqcyxNQRYmR5IUfdSQ="
 }
 ]]
 
