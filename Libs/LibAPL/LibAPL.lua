@@ -31,22 +31,11 @@ Actions:
     multiShield
     waitUntil ???
     autocastOtherCooldowns is silently eaten
+    
+    https://github.com/wowsims/cata/blob/12776383d4ec556e69b1870fd0587accfb794bf8/proto/apl.proto
+    
+    JSON.stringify(JSON.parse(localStorage.getItem("__cata_assassination_rogue__currentSettings__")).player.rotation)
 --]]
-
---[[
-TODO:
-implement missing methods
-aura/dot source?
-
-caching compute heavy stuff
-
-https://github.com/wowsims/cata/blob/12776383d4ec556e69b1870fd0587accfb794bf8/proto/apl.proto
-
-JSON.stringify(JSON.parse(localStorage.getItem("__cata_assassination_rogue__currentSettings__")).player.rotation)
-
-Datastore?
-LibDRM?
-]]--
 
 --region Libs, constants
 

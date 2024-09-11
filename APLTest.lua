@@ -1,3 +1,13 @@
+--[[
+TODO:
+LibAPL
+	implement missing methods
+	aura/dot source? Datastore?
+	caching compute heavy stuff
+Load external json form (plain/encrypted)
+]]--
+
+
 local ADDON, T = ...
 local L = {}
 
