@@ -537,7 +537,7 @@ end
 function APLInterpreter:dotRemainingTime(level, vals)
     local unit = self.helper:UnitMap(vals.sourceUnit and vals.sourceUnit.type, "target")
     local spellId = vals.spellId.spellId
-    local ret = self.helper:GetAura(unit, spellId) ~= nil
+    local ret = self.helper:GetAura(unit, spellId) or 0
     Debug.DebugLev(level, "dotRemainingTime", unit, spellId, "=", ret)
     return ret
 end
